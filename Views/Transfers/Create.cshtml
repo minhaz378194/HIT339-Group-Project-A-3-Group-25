@@ -1,0 +1,150 @@
+@model LibraTrack.Models.ViewModels.CreateTransferViewModel
+@{
+    ViewData["Title"] = "New Branch Transfer Request";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Transfers</a></li>
+                <li class="breadcrumb-item active">New Request</li>
+            </ol>
+        </nav>
+        <h1 class="page-title mb-1">
+            <i class="bi bi-truck text-primary me-2"></i>New Transfer Request
+        </h1>
+        <p class="text-muted small mb-0">Relocate an item from its current branch to another branch across the library network.</p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="lib-card shadow-sm p-4">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <!-- Step 1: Select Item -->
+                    <div class="mb-4">
+                        <label asp-for="ItemId" class="form-label fw-bold">
+                            <i class="bi bi-box-seam me-1"></i>Select Catalog Item to Transfer <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="ItemId" class="form-select form-select-lg" id="itemSelect" required>
+                            <option value="">-- Choose an available item --</option>
+                            @foreach (var item in Model.AvailableItems)
+                            {
+                                <option value="@item.Id" 
+                                        data-branch-id="@item.BranchId" 
+                                        data-branch-name="@(item.Branch?.Name ?? "Unknown")"
+                                        selected="@(Model.ItemId == item.Id ? "selected" : null)">
+                                    [@item.LibraryCode] @item.Name &mdash; Current Branch: @(item.Branch?.Name ?? "Unknown") (@item.Status)
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="ItemId" class="text-danger small"></span>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>Items currently on loan to patrons cannot be transferred until returned.
+                        </div>
+                    </div>
+
+                    <!-- Origin Branch Preview Card -->
+                    <div class="mb-4 p-3 bg-light rounded border">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle p-2 bg-secondary text-white me-3">
+                                <i class="bi bi-building fs-5"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted text-uppercase fw-semibold d-block">Origin Branch (Current Location)</small>
+                                <span class="fs-6 fw-bold text-dark" id="originBranchDisplay">
+                                    @(string.IsNullOrEmpty(Model.FromBranchName) ? "Select an item above to determine its current location" : Model.FromBranchName)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Destination Branch -->
+                    <div class="mb-4">
+                        <label asp-for="ToBranchId" class="form-label fw-bold">
+                            <i class="bi bi-geo-alt-fill text-primary me-1"></i>Destination Branch <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="ToBranchId" class="form-select" id="destinationBranchSelect" required>
+                            <option value="">-- Select Destination Branch --</option>
+                            @foreach (var branch in Model.DestinationBranches)
+                            {
+                                <option value="@branch.Id" selected="@(Model.ToBranchId == branch.Id ? "selected" : null)">
+                                    @branch.Name (@branch.BranchCode) &mdash; @branch.Address
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="ToBranchId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Step 3: Staff Notes -->
+                    <div class="mb-4">
+                        <label asp-for="Notes" class="form-label fw-bold">
+                            <i class="bi bi-chat-left-text me-1"></i>Transfer Reason / Logistics Notes
+                        </label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="e.g. Patron hold request at destination branch, inventory rebalancing, or exhibit display..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Back to Transfers
+                        </a>
+                        <button type="submit" class="btn btn-lib-primary btn-lg">
+                            <i class="bi bi-check2-circle me-1"></i>Submit Transfer Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var itemSelect = document.getElementById("itemSelect");
+            var originDisplay = document.getElementById("originBranchDisplay");
+            var destSelect = document.getElementById("destinationBranchSelect");
+
+            function updateOrigin() {
+                var selectedOpt = itemSelect.options[itemSelect.selectedIndex];
+                if (selectedOpt && selectedOpt.value) {
+                    var branchName = selectedOpt.getAttribute("data-branch-name");
+                    var branchId = selectedOpt.getAttribute("data-branch-id");
+                    originDisplay.textContent = branchName || "Unknown";
+
+                    // Disable current branch in destination options
+                    for (var i = 0; i < destSelect.options.length; i++) {
+                        var opt = destSelect.options[i];
+                        if (opt.value && opt.value === branchId) {
+                            opt.disabled = true;
+                            if (destSelect.value === branchId) {
+                                destSelect.value = "";
+                            }
+                        } else {
+                            opt.disabled = false;
+                        }
+                    }
+                } else {
+                    originDisplay.textContent = "Select an item above to determine its current location";
+                    for (var j = 0; j < destSelect.options.length; j++) {
+                        destSelect.options[j].disabled = false;
+                    }
+                }
+            }
+
+            itemSelect.addEventListener("change", updateOrigin);
+            if (itemSelect.value) {
+                updateOrigin();
+            }
+        });
+    </script>
+}
