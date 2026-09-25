@@ -1,0 +1,96 @@
+@model LibraTrack.Models.Borrower
+@{
+    ViewData["Title"] = $"Edit Borrower: {Model.FullName}";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Reception</a></li>
+                <li class="breadcrumb-item active">Edit Borrower</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-pencil-square text-success me-2"></i>Edit Borrower Profile
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="lib-card lib-form">
+                <div class="lib-card-header">
+                    <i class="bi bi-person-gear" style="color:var(--caramel);font-size:1.25rem;"></i>
+                    <h3>Modify Patron: @Model.FullName (<code>@Model.BorrowerCardNumber</code>)</h3>
+                </div>
+
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="MembershipDate" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="BorrowerCardNumber" class="form-label"></label>
+                            <input asp-for="BorrowerCardNumber" class="form-control" />
+                            <span asp-validation-for="BorrowerCardNumber" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="IsActive" class="form-label">Membership Status</label>
+                            <div class="pt-2">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" asp-for="IsActive" />
+                                    <label class="form-check-label" asp-for="IsActive">Active Member</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label"></label>
+                            <input asp-for="FirstName" class="form-control" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control" />
+                            <span asp-validation-for="Phone" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label"></label>
+                            <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-lib-outline">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-lib-primary">
+                            <i class="bi bi-check-lg me-1"></i>Update Borrower
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

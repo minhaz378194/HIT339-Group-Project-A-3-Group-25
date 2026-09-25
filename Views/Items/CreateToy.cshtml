@@ -1,0 +1,124 @@
+@model LibraTrack.Models.Toy
+@{
+    ViewData["Title"] = "Add New Toy / Educational Game";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index" asp-route-tab="toys">Admin</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Add Toy</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-puzzle text-warning me-2"></i>Add New Toy / Game
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="lib-card lib-form">
+                <div class="lib-card-header">
+                    <i class="bi bi-dice-5" style="color:var(--toy-color);font-size:1.25rem;"></i>
+                    <h3>Toy & Game Catalog Entry</h3>
+                </div>
+
+                <form asp-action="CreateToy" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="LibraryCode" class="form-label"></label>
+                            <input asp-for="LibraryCode" class="form-control" placeholder="e.g. TOY-3009" />
+                            <span asp-validation-for="LibraryCode" class="text-danger"></span>
+                            <div class="form-text">Must follow format 'XXX-0000' (e.g. TOY-3009).</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<LibraTrack.Models.ItemStatus>()"></select>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label">Toy / Game Name</label>
+                            <input asp-for="Name" class="form-control" placeholder="e.g. Settlers of Catan" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ToyType" class="form-label"></label>
+                            <input asp-for="ToyType" class="form-control" placeholder="e.g. Board Game, LEGO, STEM Kit, Puzzle" />
+                            <span asp-validation-for="ToyType" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Brand" class="form-label"></label>
+                            <input asp-for="Brand" class="form-control" placeholder="e.g. Ravensburger, LEGO, Hasbro" />
+                            <span asp-validation-for="Brand" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="RecommendedAgeMin" class="form-label"></label>
+                            <input asp-for="RecommendedAgeMin" class="form-control" />
+                            <span asp-validation-for="RecommendedAgeMin" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="RecommendedAgeMax" class="form-label"></label>
+                            <input asp-for="RecommendedAgeMax" class="form-control" placeholder="Optional (e.g. 99)" />
+                            <span asp-validation-for="RecommendedAgeMax" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="PieceCount" class="form-label"></label>
+                            <input asp-for="PieceCount" class="form-control" placeholder="e.g. 1000" />
+                            <span asp-validation-for="PieceCount" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label asp-for="ReplacementCost" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="ReplacementCost" class="form-control" step="0.01" />
+                            </div>
+                            <span asp-validation-for="ReplacementCost" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="ImageUrl" class="form-label"></label>
+                            <input asp-for="ImageUrl" class="form-control" placeholder="https://images.unsplash.com/..." />
+                            <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="SafetyNotes" class="form-label"></label>
+                            <input asp-for="SafetyNotes" class="form-control" placeholder="e.g. Contains small magnets or choking hazard for children under 3" />
+                            <span asp-validation-for="SafetyNotes" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Gameplay mechanics, contents, educational learning objectives..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a asp-action="Index" asp-route-tab="toys" class="btn btn-lib-outline">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel & Back
+                        </a>
+                        <button type="submit" class="btn btn-lib-primary" style="background-color:var(--toy-color);">
+                            <i class="bi bi-check2-circle me-1"></i>Save Toy Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

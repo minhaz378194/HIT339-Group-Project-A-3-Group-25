@@ -1,0 +1,148 @@
+@model LibraTrack.Models.ViewModels.ReturnLoanViewModel
+@{
+    ViewData["Title"] = $"Process Return: {Model.ItemTitle}";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-controller="Loans" asp-action="Index">Loans</a></li>
+                <li class="breadcrumb-item active">Process Return</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-box-arrow-in-left text-success me-2"></i>Process Item Return
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="lib-card lib-form">
+                <div class="lib-card-header">
+                    <i class="bi bi-arrow-return-left" style="color:var(--caramel);font-size:1.25rem;"></i>
+                    <h3>Return & Condition Assessment</h3>
+                </div>
+
+                <!-- Loan Summary Card -->
+                <div class="p-3 bg-light rounded mb-4 border">
+                    <div class="row g-2 small">
+                        <div class="col-sm-4 text-muted">Item Title:</div>
+                        <div class="col-sm-8 fw-bold">@Model.ItemTitle (<code>@Model.LibraryCode</code>)</div>
+
+                        <div class="col-sm-4 text-muted">Patron:</div>
+                        <div class="col-sm-8 fw-bold">@Model.BorrowerName (<code>@Model.BorrowerCardNumber</code>)</div>
+
+                        <div class="col-sm-4 text-muted">Issue Date:</div>
+                        <div class="col-sm-8">@Model.BorrowDate.ToString("dd MMM yyyy")</div>
+
+                        <div class="col-sm-4 text-muted">Due Date:</div>
+                        <div class="col-sm-8 fw-bold @(Model.OverdueDays > 0 ? "text-danger" : "")">
+                            @Model.DueDate.ToString("dd MMM yyyy")
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overdue Fine Alert Banner (If Applicable) -->
+                @if (Model.OverdueDays > 0)
+                {
+                    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert" style="border-radius: 10px;">
+                        <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+                        <div>
+                            <h5 class="alert-heading mb-1 fs-6 fw-bold">Item is Overdue by @Model.OverdueDays Day(s)!</h5>
+                            <p class="mb-0 small">
+                                Calculated late fee at the standard rate of <strong>$1.50/day</strong> is 
+                                <strong class="fs-6 text-danger">$@Model.FineAmount.ToString("F2")</strong>.
+                            </p>
+                        </div>
+                    </div>
+                }
+
+                <form asp-action="Return" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="LoanId" />
+                    <input type="hidden" asp-for="ItemId" />
+                    <input type="hidden" asp-for="LibraryCode" />
+                    <input type="hidden" asp-for="ItemTitle" />
+                    <input type="hidden" asp-for="BorrowerId" />
+                    <input type="hidden" asp-for="BorrowerName" />
+                    <input type="hidden" asp-for="BorrowerCardNumber" />
+                    <input type="hidden" asp-for="BorrowDate" />
+                    <input type="hidden" asp-for="DueDate" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Return Date -->
+                        <div class="col-md-6">
+                            <label asp-for="ReturnDate" class="form-label"></label>
+                            <input asp-for="ReturnDate" class="form-control" type="date" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="ReturnDate" class="text-danger"></span>
+                        </div>
+
+                        <!-- Fine Amount Input / Override -->
+                        <div class="col-md-6">
+                            <label asp-for="FineAmount" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="FineAmount" class="form-control" step="0.01" />
+                            </div>
+                            <span asp-validation-for="FineAmount" class="text-danger"></span>
+                        </div>
+
+                        <!-- Fine Payment Option (If fine > 0) -->
+                        @if (Model.FineAmount > 0)
+                        {
+                            <div class="col-12">
+                                <div class="p-3 bg-light rounded border">
+                                    <div class="form-check">
+                                        <input class="form-check-input" asp-for="MarkFineAsPaid" />
+                                        <label class="form-check-label fw-bold" asp-for="MarkFineAsPaid">
+                                            Collect and mark fine as PAID at desk now
+                                        </label>
+                                    </div>
+                                    <small class="text-muted ps-4 d-block">
+                                        If unchecked, the fine of $@Model.FineAmount.ToString("F2") will remain as an outstanding balance on @Model.BorrowerName's account.
+                                    </small>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Physical Condition at Return -->
+                        <div class="col-12">
+                            <label asp-for="Condition" class="form-label"></label>
+                            <select asp-for="Condition" class="form-select">
+                                <option value="Good">Good / Normal Condition (Item becomes Available)</option>
+                                <option value="Damaged">Damaged / Needs Repair (Item marked Damaged)</option>
+                                <option value="Destroyed">Destroyed / Unusable (Item marked Destroyed & Written Off)</option>
+                            </select>
+                            <span asp-validation-for="Condition" class="text-danger"></span>
+                            <div class="form-text">
+                                The catalog status of this item will automatically update based on the selected return condition.
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Condition remarks, description of any damage, receipt reference for fine payment..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-lib-outline">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-lib-primary">
+                            <i class="bi bi-check2-all me-1"></i>Complete Return Process
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

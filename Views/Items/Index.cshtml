@@ -1,0 +1,371 @@
+@model LibraTrack.Models.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<!-- Page Header (Section 5 of design.md) -->
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house me-1"></i>Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Admin</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-shield-check me-2"></i>Admin Dashboard
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- 4 Live Stat Cards (Section 7 of design.md) -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Total Books -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(46,109,164,0.12); color:var(--borrowed);">
+                    <i class="bi bi-book"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.TotalBooks</div>
+                    <div class="stat-label">Total Books</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Total Music -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(123,79,166,0.12); color:var(--music-color);">
+                    <i class="bi bi-music-note-beamed"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.TotalMusic</div>
+                    <div class="stat-label">Total Music</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Total Toys -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(212,131,26,0.12); color:var(--toy-color);">
+                    <i class="bi bi-puzzle"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.TotalToys</div>
+                    <div class="stat-label">Total Toys</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Total Items -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(74,124,89,0.12); color:var(--available);">
+                    <i class="bi bi-collection"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.TotalItems</div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3 Quick Action Buttons -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a asp-action="CreateBook" class="btn btn-lib-primary">
+            <i class="bi bi-plus-circle me-1"></i> Add Book
+        </a>
+        <a asp-action="CreateMusic" class="btn btn-lib-primary">
+            <i class="bi bi-plus-circle me-1"></i> Add Music
+        </a>
+        <a asp-action="CreateToy" class="btn btn-lib-primary">
+            <i class="bi bi-plus-circle me-1"></i> Add Toy
+        </a>
+    </div>
+
+    <!-- Search / Filter Box -->
+    <div class="lib-card mb-4 p-3">
+        <form method="get" asp-action="Index" class="row g-2 align-items-center">
+            <input type="hidden" name="tab" value="@Model.ActiveTab" />
+            <div class="col-md-9 col-12">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" value="@Model.SearchTerm" class="form-control bg-light border-start-0" 
+                           placeholder="Search catalog by library code, title, author, artist, or type..." />
+                </div>
+            </div>
+            <div class="col-md-3 col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-lib-primary flex-grow-1">Filter</button>
+                @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <a asp-action="Index" asp-route-tab="@Model.ActiveTab" class="btn btn-lib-outline">Reset</a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab Component (Books | Music | Toys) -->
+    <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "books" ? "active" : "")" id="books-tab" data-bs-toggle="tab" 
+                    data-bs-target="#books-pane" type="button" role="tab" aria-controls="books-pane" aria-selected="@(Model.ActiveTab == "books" ? "true" : "false")">
+                <i class="bi bi-book me-2"></i>Books (@Model.Books.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "music" ? "active" : "")" id="music-tab" data-bs-toggle="tab" 
+                    data-bs-target="#music-pane" type="button" role="tab" aria-controls="music-pane" aria-selected="@(Model.ActiveTab == "music" ? "true" : "false")">
+                <i class="bi bi-music-note-beamed me-2"></i>Music (@Model.MusicList.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.ActiveTab == "toys" ? "active" : "")" id="toys-tab" data-bs-toggle="tab" 
+                    data-bs-target="#toys-pane" type="button" role="tab" aria-controls="toys-pane" aria-selected="@(Model.ActiveTab == "toys" ? "true" : "false")">
+                <i class="bi bi-puzzle me-2"></i>Toys (@Model.Toys.Count)
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="adminTabsContent">
+        <!-- 1. BOOKS TAB -->
+        <div class="tab-pane fade @(Model.ActiveTab == "books" ? "show active" : "")" id="books-pane" role="tabpanel" aria-labelledby="books-tab">
+            <div class="lib-card">
+                @if (!Model.Books.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 3.5rem; color: var(--muted);"></i>
+                        <h4 class="mt-3">No Books yet</h4>
+                        <p class="text-muted">Get started by adding a new book to the library catalog.</p>
+                        <a asp-action="CreateBook" class="btn btn-lib-primary mt-2">
+                            <i class="bi bi-plus-circle me-1"></i> Add Book
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="lib-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Library Code</th>
+                                    <th>Name</th>
+                                    <th>Author</th>
+                                    <th>Genre</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var book in Model.Books)
+                                {
+                                    var statusClass = book.Status switch
+                                    {
+                                        LibraTrack.Models.ItemStatus.Available => "status-available",
+                                        LibraTrack.Models.ItemStatus.Borrowed => "status-borrowed",
+                                        LibraTrack.Models.ItemStatus.Damaged => "status-damaged",
+                                        LibraTrack.Models.ItemStatus.Destroyed => "status-destroyed",
+                                        _ => "status-available"
+                                    };
+
+                                    <tr>
+                                        <td><span class="badge bg-light text-dark border font-monospace">@book.LibraryCode</span></td>
+                                        <td>
+                                            <strong>@book.Name</strong>
+                                            @if (!string.IsNullOrEmpty(book.ISBN))
+                                            {
+                                                <div class="text-muted small">ISBN: @book.ISBN</div>
+                                            }
+                                        </td>
+                                        <td>@book.Author</td>
+                                        <td><span class="badge bg-light text-dark border">@book.Genre</span></td>
+                                        <td>
+                                            <span class="status-badge @statusClass">@book.Status</span>
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <div class="d-flex gap-1 justify-content-end">
+                                                <a asp-action="Details" asp-route-id="@book.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a asp-action="EditBook" asp-route-id="@book.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="Edit Book">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form asp-action="Delete" asp-route-id="@book.Id" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Are you sure you want to delete @book.Name? Active loans will block deletion.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-lib-danger py-1 px-2" title="Delete Book">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 2. MUSIC TAB -->
+        <div class="tab-pane fade @(Model.ActiveTab == "music" ? "show active" : "")" id="music-pane" role="tabpanel" aria-labelledby="music-tab">
+            <div class="lib-card">
+                @if (!Model.MusicList.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 3.5rem; color: var(--muted);"></i>
+                        <h4 class="mt-3">No Music yet</h4>
+                        <p class="text-muted">Get started by adding a new music album to the library catalog.</p>
+                        <a asp-action="CreateMusic" class="btn btn-lib-primary mt-2">
+                            <i class="bi bi-plus-circle me-1"></i> Add Music
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="lib-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Library Code</th>
+                                    <th>Name</th>
+                                    <th>Artist</th>
+                                    <th>Year</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var music in Model.MusicList)
+                                {
+                                    var statusClass = music.Status switch
+                                    {
+                                        LibraTrack.Models.ItemStatus.Available => "status-available",
+                                        LibraTrack.Models.ItemStatus.Borrowed => "status-borrowed",
+                                        LibraTrack.Models.ItemStatus.Damaged => "status-damaged",
+                                        LibraTrack.Models.ItemStatus.Destroyed => "status-destroyed",
+                                        _ => "status-available"
+                                    };
+
+                                    <tr>
+                                        <td><span class="badge bg-light text-dark border font-monospace">@music.LibraryCode</span></td>
+                                        <td>
+                                            <strong>@music.Name</strong>
+                                            <div class="text-muted small">@music.Format</div>
+                                        </td>
+                                        <td>@music.Artist</td>
+                                        <td>@music.ReleaseYear</td>
+                                        <td>
+                                            <span class="status-badge @statusClass">@music.Status</span>
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <div class="d-flex gap-1 justify-content-end">
+                                                <a asp-action="Details" asp-route-id="@music.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a asp-action="EditMusic" asp-route-id="@music.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="Edit Music">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form asp-action="Delete" asp-route-id="@music.Id" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Are you sure you want to delete @music.Name? Active loans will block deletion.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-lib-danger py-1 px-2" title="Delete Music">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 3. TOYS TAB -->
+        <div class="tab-pane fade @(Model.ActiveTab == "toys" ? "show active" : "")" id="toys-pane" role="tabpanel" aria-labelledby="toys-tab">
+            <div class="lib-card">
+                @if (!Model.Toys.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox" style="font-size: 3.5rem; color: var(--muted);"></i>
+                        <h4 class="mt-3">No Toys yet</h4>
+                        <p class="text-muted">Get started by adding educational STEM toys or board games to the catalog.</p>
+                        <a asp-action="CreateToy" class="btn btn-lib-primary mt-2">
+                            <i class="bi bi-plus-circle me-1"></i> Add Toy
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="lib-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Library Code</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Age Group</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var toy in Model.Toys)
+                                {
+                                    var statusClass = toy.Status switch
+                                    {
+                                        LibraTrack.Models.ItemStatus.Available => "status-available",
+                                        LibraTrack.Models.ItemStatus.Borrowed => "status-borrowed",
+                                        LibraTrack.Models.ItemStatus.Damaged => "status-damaged",
+                                        LibraTrack.Models.ItemStatus.Destroyed => "status-destroyed",
+                                        _ => "status-available"
+                                    };
+
+                                    <tr>
+                                        <td><span class="badge bg-light text-dark border font-monospace">@toy.LibraryCode</span></td>
+                                        <td>
+                                            <strong>@toy.Name</strong>
+                                            @if (!string.IsNullOrEmpty(toy.Brand))
+                                            {
+                                                <div class="text-muted small">Brand: @toy.Brand</div>
+                                            }
+                                        </td>
+                                        <td><span class="badge bg-light text-dark border">@toy.ToyType</span></td>
+                                        <td>@toy.RecommendedAgeMin @(toy.RecommendedAgeMax.HasValue ? $"- {toy.RecommendedAgeMax}" : "+") yrs</td>
+                                        <td>
+                                            <span class="status-badge @statusClass">@toy.Status</span>
+                                        </td>
+                                        <td class="text-end text-nowrap">
+                                            <div class="d-flex gap-1 justify-content-end">
+                                                <a asp-action="Details" asp-route-id="@toy.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="View Details">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a asp-action="EditToy" asp-route-id="@toy.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="Edit Toy">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form asp-action="Delete" asp-route-id="@toy.Id" method="post" class="d-inline"
+                                                      onsubmit="return confirm('Are you sure you want to delete @toy.Name? Active loans will block deletion.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-lib-danger py-1 px-2" title="Delete Toy">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

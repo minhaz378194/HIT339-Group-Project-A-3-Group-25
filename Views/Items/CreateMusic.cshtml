@@ -1,0 +1,129 @@
+@model LibraTrack.Models.Music
+@{
+    ViewData["Title"] = "Add New Music Album";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index" asp-route-tab="music">Admin</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Add Music</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-music-note-beamed text-primary me-2"></i>Add New Music Album
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="lib-card lib-form">
+                <div class="lib-card-header">
+                    <i class="bi bi-disc" style="color:var(--music-color);font-size:1.25rem;"></i>
+                    <h3>Music Catalog Entry</h3>
+                </div>
+
+                <form asp-action="CreateMusic" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="LibraryCode" class="form-label"></label>
+                            <input asp-for="LibraryCode" class="form-control" placeholder="e.g. MUS-2009" />
+                            <span asp-validation-for="LibraryCode" class="text-danger"></span>
+                            <div class="form-text">Must follow format 'XXX-0000' (e.g. MUS-2009).</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<LibraTrack.Models.ItemStatus>()"></select>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label">Album / Track Title</label>
+                            <input asp-for="Name" class="form-control" placeholder="e.g. Kind of Blue" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Artist" class="form-label"></label>
+                            <input asp-for="Artist" class="form-control" placeholder="e.g. Miles Davis" />
+                            <span asp-validation-for="Artist" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ReleaseYear" class="form-label"></label>
+                            <input asp-for="ReleaseYear" class="form-control" />
+                            <span asp-validation-for="ReleaseYear" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Format" class="form-label"></label>
+                            <select asp-for="Format" class="form-select">
+                                <option value="CD">Compact Disc (CD)</option>
+                                <option value="Vinyl">12" Vinyl Record</option>
+                                <option value="Cassette">Audio Cassette</option>
+                                <option value="Digital FLAC">Digital Audio (FLAC/Hi-Res)</option>
+                            </select>
+                            <span asp-validation-for="Format" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Genre" class="form-label"></label>
+                            <input asp-for="Genre" class="form-control" placeholder="e.g. Jazz, Rock, Classical" />
+                            <span asp-validation-for="Genre" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="DurationMinutes" class="form-label"></label>
+                            <input asp-for="DurationMinutes" class="form-control" placeholder="e.g. 45" />
+                            <span asp-validation-for="DurationMinutes" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="RecordLabel" class="form-label"></label>
+                            <input asp-for="RecordLabel" class="form-control" placeholder="e.g. Columbia Records" />
+                            <span asp-validation-for="RecordLabel" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ReplacementCost" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input asp-for="ReplacementCost" class="form-control" step="0.01" />
+                            </div>
+                            <span asp-validation-for="ReplacementCost" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="ImageUrl" class="form-label"></label>
+                            <input asp-for="ImageUrl" class="form-control" placeholder="https://images.unsplash.com/..." />
+                            <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="4" placeholder="Album overview, tracklist notes, instrumentation..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a asp-action="Index" asp-route-tab="music" class="btn btn-lib-outline">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel & Back
+                        </a>
+                        <button type="submit" class="btn btn-lib-primary" style="background-color:var(--music-color);">
+                            <i class="bi bi-check2-circle me-1"></i>Save Music Record
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

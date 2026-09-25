@@ -1,0 +1,223 @@
+@model LibraTrack.Models.ViewModels.ReceptionReturnViewModel
+@{
+    ViewData["Title"] = "Return Item";
+}
+
+<!-- Page Header (Section 5 of design.md) -->
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Reception</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Return Item</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-box-arrow-in-left me-2"></i>Return Item
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-12">
+            <!-- Step 1: Lookup Form -->
+            <div class="lib-card lib-form mb-4">
+                <div class="lib-card-header">
+                    <i class="bi bi-search" style="color:var(--caramel);font-size:1.25rem;"></i>
+                    <h3>Step 1: Look Up Active Loan</h3>
+                </div>
+
+                <form method="get" asp-action="ReturnItem" class="row g-2 align-items-center">
+                    <div class="col-md-9 col-12">
+                        <label class="form-label">Library Code / Item Barcode</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-upc-scan text-muted"></i></span>
+                            <input type="text" name="code" value="@Model.LibraryCode" class="form-control bg-light font-monospace" 
+                                   placeholder="e.g. BOK-1001, MUS-2001, TOY-3001..." required autofocus />
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-12 d-flex align-items-end">
+                        <button type="submit" class="btn btn-lib-primary w-100 py-2">
+                            <i class="bi bi-search me-1"></i> Look Up
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2 & 3: Loan Summary Card & Return Confirmation -->
+            @if (Model.LoanFound && Model.LoanId.HasValue)
+            {
+                <div class="lib-card lib-form border-success shadow-lg">
+                    <div class="lib-card-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size:1.35rem;"></i>
+                            <h3 class="mb-0">Step 2: Loan Summary & Condition Check</h3>
+                        </div>
+                        <span class="status-badge status-borrowed">Active Loan Found</span>
+                    </div>
+
+                    <div class="bg-light p-3 rounded-3 mb-4 border">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block">Item Title & Code:</span>
+                                <strong class="fs-5 text-dark">@Model.ItemTitle</strong>
+                                <div class="font-monospace text-muted small">@Model.ItemCode (@Model.ItemType)</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block">Borrower Patron:</span>
+                                <strong class="fs-5 text-dark">@Model.BorrowerName</strong>
+                                <div class="font-monospace text-muted small">Card: @Model.BorrowerCardNumber</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <span class="text-muted small d-block">Borrow Date:</span>
+                                <strong>@(Model.BorrowDate?.ToString("dd MMM yyyy") ?? "-")</strong>
+                            </div>
+
+                            <div class="col-md-4">
+                                <span class="text-muted small d-block">Due Date:</span>
+                                <strong>@(Model.DueDate?.ToString("dd MMM yyyy") ?? "-")</strong>
+                            </div>
+
+                            <div class="col-md-4">
+                                <span class="text-muted small d-block">Status / Overdue Days:</span>
+                                @if (Model.OverdueDays > 0)
+                                {
+                                    <span class="badge bg-danger fs-6">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>@Model.OverdueDays Day(s) Overdue
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success fs-6">
+                                        <i class="bi bi-check-circle-fill me-1"></i>On Time
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Fine Calculation Display -->
+                        <div class="alert @(Model.FineAmount > 0 ? "alert-warning" : "alert-success") mt-3 mb-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi @(Model.FineAmount > 0 ? "bi-cash-coin" : "bi-check-circle-fill") me-2 fs-5"></i>
+                                <strong>Fine Amount Calculated:</strong>
+                                @if (Model.FineAmount > 0)
+                                {
+                                    <span>$1.00 &times; @Model.OverdueDays days = <strong>$@Model.FineAmount.ToString("N2")</strong></span>
+                                }
+                                else
+                                {
+                                    <span>$0.00 (No late penalties)</span>
+                                }
+                            </div>
+                            <span class="badge @(Model.FineAmount > 0 ? "bg-dark" : "bg-success") fs-6">$@Model.FineAmount.ToString("N2")</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Confirm Return Form -->
+                    <form asp-action="ConfirmReturn" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="LoanId" />
+                        <input type="hidden" asp-for="LibraryCode" />
+                        <input type="hidden" asp-for="FineAmount" />
+
+                        <div class="row g-3">
+                            <div class="col-md-6 col-12">
+                                <label asp-for="Condition" class="form-label">Item Physical Condition *</label>
+                                <select asp-for="Condition" class="form-select">
+                                    <option value="@LibraTrack.Models.ReturnCondition.Good">Good / Undamaged (Return to Shelf)</option>
+                                    <option value="@LibraTrack.Models.ReturnCondition.Damaged">Damaged (Needs Repair)</option>
+                                    <option value="@LibraTrack.Models.ReturnCondition.Destroyed">Destroyed / Unusable</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 col-12 d-flex align-items-center pt-md-4">
+                                @if (Model.FineAmount > 0)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" asp-for="MarkFineAsPaid" />
+                                        <label class="form-check-label fw-bold text-success" asp-for="MarkFineAsPaid">
+                                            Mark $@Model.FineAmount.ToString("N2") fine as Collected / Paid
+                                        </label>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <input type="hidden" asp-for="MarkFineAsPaid" value="true" />
+                                    <span class="text-success small fw-bold"><i class="bi bi-shield-check me-1"></i>Zero balance account</span>
+                                }
+                            </div>
+
+                            <div class="col-12">
+                                <label asp-for="Notes" class="form-label">Return Notes (Optional)</label>
+                                <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Wear and tear notes, receipts, etc..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                            <a asp-action="ReturnItem" class="btn btn-lib-outline">
+                                <i class="bi bi-arrow-left me-1"></i> Look Up Another
+                            </a>
+                            <button type="submit" class="btn btn-lib-primary btn-lg px-4">
+                                <i class="bi bi-box-arrow-in-left me-1"></i> Step 3: Confirm Return
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            <!-- Quick Active Loans Helper Table -->
+            @if (Model.ActiveLoansList.Any())
+            {
+                <div class="lib-card mt-4">
+                    <div class="lib-card-header d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-clock-history text-muted"></i>
+                            <h4 class="mb-0 fs-6">Quick Select Active Loans (@Model.ActiveLoansList.Count currently checked out)</h4>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="lib-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Code</th>
+                                    <th>Borrower</th>
+                                    <th>Due Date</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var l in Model.ActiveLoansList)
+                                {
+                                    var isOverdue = l.DueDate.Date < DateTime.Today;
+                                    <tr>
+                                        <td><strong>@l.Item.Name</strong></td>
+                                        <td><span class="badge bg-light text-dark border font-monospace">@l.Item.LibraryCode</span></td>
+                                        <td>@l.Borrower.FullName</td>
+                                        <td>
+                                            @l.DueDate.ToString("dd MMM yyyy")
+                                            @if (isOverdue)
+                                            {
+                                                <span class="badge bg-danger ms-1">Overdue</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-action="ReturnItem" asp-route-code="@l.Item.LibraryCode" class="btn btn-sm btn-lib-primary py-1 px-3">
+                                                Select for Return
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

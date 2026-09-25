@@ -1,0 +1,193 @@
+@model LibraTrack.Models.ViewModels.ReceptionDashboardViewModel
+@{
+    ViewData["Title"] = "Reception Dashboard";
+}
+
+<!-- Page Header (Section 5 of design.md) -->
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house me-1"></i>Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Reception</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-person-badge me-2"></i>Reception Dashboard
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- 4 Live Stat Cards (Section 7 of design.md) -->
+    <div class="row g-3 mb-4">
+        <!-- 1. Total Borrowers -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(139,94,60,0.12); color:var(--caramel);">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.TotalBorrowers</div>
+                    <div class="stat-label">Total Borrowers</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Active Loans -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(46,109,164,0.12); color:var(--borrowed);">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.ActiveLoansCount</div>
+                    <div class="stat-label">Active Loans</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Overdue Items -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(200,121,65,0.12); color:var(--damaged);">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.OverdueLoansCount</div>
+                    <div class="stat-label">Overdue Items</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Unpaid Fines Total -->
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(192,57,43,0.12); color:var(--destroyed);">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">$@Model.TotalUnpaidFines.ToString("N2")</div>
+                    <div class="stat-label">Unpaid Fines Total</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a asp-action="CreateBorrower" class="btn btn-lib-primary">
+            <i class="bi bi-person-plus-fill me-1"></i> Register Borrower
+        </a>
+        <a asp-action="IssueItem" class="btn btn-lib-primary">
+            <i class="bi bi-box-seam me-1"></i> Issue Item
+        </a>
+        <a asp-action="ReturnItem" class="btn btn-lib-primary">
+            <i class="bi bi-box-arrow-in-left me-1"></i> Return Item
+        </a>
+    </div>
+
+    <!-- Search / Filter Borrowers -->
+    <div class="lib-card mb-4 p-3">
+        <form method="get" asp-action="Index" class="row g-2 align-items-center">
+            <div class="col-md-9 col-12">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-start-0" 
+                           placeholder="Search borrowers by name, card number (BRW-XXXX), email, or phone..." />
+                </div>
+            </div>
+            <div class="col-md-3 col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-lib-primary flex-grow-1">Search</button>
+                <a asp-action="Index" class="btn btn-lib-outline">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Borrowers Table (Section 10 of design.md) -->
+    <div class="lib-card">
+        <div class="lib-card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-people" style="color:var(--caramel);font-size:1.25rem;"></i>
+                <h3 class="mb-0">Registered Library Borrowers</h3>
+            </div>
+            <span class="badge bg-secondary">Total: @Model.Borrowers.Count</span>
+        </div>
+
+        @if (!Model.Borrowers.Any())
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-people" style="font-size: 3.5rem; color: var(--muted);"></i>
+                <h4 class="mt-3">No borrowers registered yet</h4>
+                <p class="text-muted">Get started by registering a new library member.</p>
+                <a asp-action="CreateBorrower" class="btn btn-lib-primary mt-2">
+                    <i class="bi bi-person-plus-fill me-1"></i> Register Borrower
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="lib-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Library Card No.</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Active Loans</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in Model.Borrowers)
+                        {
+                            var activeCount = b.Loans?.Count(l => l.ReturnDate == null) ?? 0;
+                            <tr>
+                                <td>
+                                    <strong>@b.FullName</strong>
+                                    @if (!b.IsActive)
+                                    {
+                                        <span class="badge bg-danger ms-1" style="font-size:0.7rem;">Suspended</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border font-monospace">@b.BorrowerCardNumber</span>
+                                </td>
+                                <td>@b.Phone</td>
+                                <td>@b.Email</td>
+                                <td>
+                                    @if (activeCount > 0)
+                                    {
+                                        <span class="badge bg-info text-dark">@activeCount item(s)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">None</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex gap-1 justify-content-end">
+                                        <a asp-controller="Borrowers" asp-action="Details" asp-route-id="@b.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="View Profile">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="EditBorrower" asp-route-id="@b.Id" class="btn btn-sm btn-lib-outline py-1 px-2" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form asp-action="DeleteBorrower" asp-route-id="@b.Id" method="post" class="d-inline"
+                                              onsubmit="return confirm('Are you sure you want to delete borrower @b.FullName? This cannot be undone.');">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-lib-danger py-1 px-2" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

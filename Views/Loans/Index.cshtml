@@ -1,0 +1,160 @@
+@model IEnumerable<LibraTrack.Models.Loan>
+@{
+    ViewData["Title"] = "Loans & Fines Management";
+    var filter = ViewBag.ActiveFilter as string ?? "active";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-controller="Borrowers" asp-action="Index">Reception</a></li>
+                <li class="breadcrumb-item active">Loans & Fines</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h1 class="page-title">
+                <i class="bi bi-arrow-left-right text-primary me-2"></i>Loans & Fines Management
+            </h1>
+            <a asp-action="Issue" class="btn btn-lib-primary">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Issue New Item
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- Filter Bar & Search -->
+    <div class="row g-3 mb-4 align-items-center">
+        <div class="col-md-7">
+            <div class="btn-group" role="group">
+                <a asp-action="Index" asp-route-filter="active" class="btn @(filter == "active" ? "btn-dark" : "btn-outline-dark")">
+                    <i class="bi bi-hourglass-split me-1"></i>Active Loans
+                </a>
+                <a asp-action="Index" asp-route-filter="overdue" class="btn @(filter == "overdue" ? "btn-danger" : "btn-outline-danger")">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue Only
+                </a>
+                <a asp-action="Index" asp-route-filter="returned" class="btn @(filter == "returned" ? "btn-success" : "btn-outline-success")">
+                    <i class="bi bi-check2-circle me-1"></i>Returned
+                </a>
+                <a asp-action="Index" asp-route-filter="all" class="btn @(filter == "all" ? "btn-secondary" : "btn-outline-secondary")">
+                    <i class="bi bi-list-ul me-1"></i>All Records
+                </a>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <form method="get" asp-action="Index" class="d-flex gap-2">
+                <input type="hidden" name="filter" value="@filter" />
+                <input type="text" name="search" value="@ViewBag.SearchTerm" class="form-control" placeholder="Search item, code, or patron..." />
+                <button type="submit" class="btn btn-lib-primary">Search</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="lib-card p-0 overflow-hidden">
+        <div class="table-responsive">
+            <table class="lib-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Item Code</th>
+                        <th>Item Title</th>
+                        <th>Borrower</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Return Status</th>
+                        <th>Condition</th>
+                        <th>Late Fine ($1.50/day)</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                No loans found matching the current filter.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var loan in Model)
+                    {
+                        var isOverdue = loan.IsOverdue;
+                        var rowClass = isOverdue && loan.ReturnDate == null ? "table-danger table-opacity-10" : "";
+
+                        <tr class="@rowClass">
+                            <td><code>@loan.Item.LibraryCode</code></td>
+                            <td>
+                                <div class="fw-bold">@loan.Item.Name</div>
+                                <span class="type-badge type-@loan.Item.ItemType.ToString().ToLower()">@loan.Item.ItemType</span>
+                            </td>
+                            <td>
+                                <div>@loan.Borrower.FullName</div>
+                                <small class="text-muted"><code>@loan.Borrower.BorrowerCardNumber</code></small>
+                            </td>
+                            <td>@loan.BorrowDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <span class="@(isOverdue && loan.ReturnDate == null ? "text-danger fw-bold" : "")">
+                                    @loan.DueDate.ToString("dd MMM yyyy")
+                                </span>
+                            </td>
+                            <td>
+                                @if (loan.ReturnDate.HasValue)
+                                {
+                                    <span class="text-success small fw-bold">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Returned @loan.ReturnDate.Value.ToString("dd/MM/yyyy")
+                                    </span>
+                                }
+                                else if (isOverdue)
+                                {
+                                    <span class="badge bg-danger">Overdue (@loan.OverdueDays d)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary">Active</span>
+                                }
+                            </td>
+                            <td>
+                                @(loan.ReturnedCondition?.ToString() ?? "—")
+                            </td>
+                            <td>
+                                @if (loan.FineAmount > 0)
+                                {
+                                    <span class="badge @(loan.FinePaid ? "bg-success" : "bg-danger")">
+                                        $@loan.FineAmount.ToString("F2") @(loan.FinePaid ? "Paid" : "Unpaid")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">$0.00</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                @if (loan.ReturnDate == null)
+                                {
+                                    <a asp-action="Return" asp-route-id="@loan.Id" class="btn btn-sm btn-lib-primary">
+                                        <i class="bi bi-box-arrow-in-left me-1"></i>Process Return
+                                    </a>
+                                }
+                                else if (!loan.FinePaid && loan.FineAmount > 0)
+                                {
+                                    <form asp-action="PayFine" asp-route-id="@loan.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="bi bi-cash me-1"></i>Pay Fine
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-muted border">Completed</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

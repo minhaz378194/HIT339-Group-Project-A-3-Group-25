@@ -1,0 +1,211 @@
+@model LibraTrack.Models.ViewModels.CatalogSearchViewModel
+@{
+    ViewData["Title"] = "Search Collection";
+}
+
+<!-- Search Hero Section with Category & Status Dropdown Filters -->
+<div class="search-hero">
+    <div class="container text-center">
+        <h1 class="hero-title">Discover. Borrow. Learn.</h1>
+        <p class="hero-subtitle">Explore books, vinyl & audio records, and educational STEM toys</p>
+        
+        <div class="search-box mx-auto" style="max-width: 960px;">
+            <form method="get" asp-controller="Catalog" asp-action="Index" class="bg-white p-3 p-md-4 rounded-4 shadow-lg text-start" style="border: 1px solid rgba(255,255,255,0.2);">
+                <!-- Search Keyword Row -->
+                <div class="row g-2 align-items-center mb-3">
+                    <div class="col-12 col-lg-9">
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0 text-muted ps-3">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" name="q" value="@Model.SearchQuery" class="form-control bg-light border-start-0 ps-2 fs-6"
+                                   placeholder="Search by title, author, artist, code, or keyword..." />
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-3 d-grid">
+                        <button class="btn btn-lib-primary btn-lg fs-6 py-2 px-4 shadow-sm" type="submit">
+                            <i class="bi bi-search me-1"></i> Search Catalog
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dropdown Filters Row -->
+                <div class="row g-2 align-items-center pt-2 border-top">
+                    <!-- 1. Category / Type Dropdown -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small fw-bold text-muted mb-1">
+                            <i class="bi bi-grid-fill me-1 text-warning"></i> Item Category
+                        </label>
+                        <select name="type" class="form-select form-select-sm py-2 shadow-none border-secondary-subtle" onchange="this.form.submit()">
+                            <!option value="" @(string.IsNullOrEmpty(Model.SelectedType) ? "selected" : "")>All Categories (@(Model.BooksCount + Model.MusicCount + Model.ToysCount))</!option>
+                            <!option value="Book" @(Model.SelectedType == "Book" ? "selected" : "")>📚 Books (@Model.BooksCount)</!option>
+                            <!option value="Music" @(Model.SelectedType == "Music" ? "selected" : "")>🎵 Music & Audio (@Model.MusicCount)</!option>
+                            <!option value="Toy" @(Model.SelectedType == "Toy" ? "selected" : "")>🧩 Toys & Games (@Model.ToysCount)</!option>
+                        </select>
+                    </div>
+
+                    <!-- 2. Status Dropdown -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small fw-bold text-muted mb-1">
+                            <i class="bi bi-check-circle-fill me-1 text-success"></i> Availability & Status
+                        </label>
+                        <select name="status" class="form-select form-select-sm py-2 shadow-none border-secondary-subtle" onchange="this.form.submit()">
+                            <!option value="" @(string.IsNullOrEmpty(Model.SelectedStatus) ? "selected" : "")>All Statuses</!option>
+                            <!option value="Available" @(Model.SelectedStatus == "Available" ? "selected" : "")>✅ Available Now (@Model.AvailableCount)</!option>
+                            <!option value="Borrowed" @(Model.SelectedStatus == "Borrowed" ? "selected" : "")>⏳ Currently Borrowed (@Model.BorrowedCount)</!option>
+                            <!option value="Damaged" @(Model.SelectedStatus == "Damaged" ? "selected" : "")>⚠️ Under Repair / Damaged (@Model.DamagedCount)</!option>
+                            <!option value="Destroyed" @(Model.SelectedStatus == "Destroyed" ? "selected" : "")>❌ Destroyed / Decommissioned (@Model.DestroyedCount)</!option>
+                        </select>
+                    </div>
+
+                    <!-- 3. Sort Order Dropdown -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small fw-bold text-muted mb-1">
+                            <i class="bi bi-sort-down me-1 text-primary"></i> Sort Results By
+                        </label>
+                        <select name="sort" class="form-select form-select-sm py-2 shadow-none border-secondary-subtle" onchange="this.form.submit()">
+                            <!option value="" @(string.IsNullOrEmpty(Model.SortBy) ? "selected" : "")>Title (A &rarr; Z)</!option>
+                            <!option value="title_desc" @(Model.SortBy == "title_desc" ? "selected" : "")>Title (Z &rarr; A)</!option>
+                            <!option value="newest" @(Model.SortBy == "newest" ? "selected" : "")>Newly Added Items</!option>
+                            <!option value="cost_asc" @(Model.SortBy == "cost_asc" ? "selected" : "")>Replacement Cost (Low &rarr; High)</!option>
+                            <!option value="cost_desc" @(Model.SortBy == "cost_desc" ? "selected" : "")>Replacement Cost (High &rarr; Low)</!option>
+                        </select>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.SelectedType) || !string.IsNullOrEmpty(Model.SelectedStatus) || !string.IsNullOrEmpty(Model.SortBy))
+                {
+                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                        <div class="small text-muted">
+                            <i class="bi bi-funnel-fill me-1 text-warning"></i> Active filters applied
+                        </div>
+                        <a asp-action="Index" class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-bold">
+                            <i class="bi bi-x-circle me-1"></i> Reset All Filters
+                        </a>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- Results Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h3 class="mb-0 fs-4">
+                @if (!string.IsNullOrEmpty(Model.SearchQuery))
+                {
+                    <span>Search Results for "<em>@Model.SearchQuery</em>"</span>
+                }
+                else if (!string.IsNullOrEmpty(Model.SelectedType))
+                {
+                    <span>Browsing @Model.SelectedType Collection</span>
+                }
+                else
+                {
+                    <span>Featured Catalog Collection</span>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.SelectedStatus))
+                {
+                    <span class="badge bg-secondary fs-6 ms-2 align-middle">Status: @Model.SelectedStatus</span>
+                }
+            </h3>
+            <p class="text-muted small mb-0">Showing @Model.TotalResultsCount catalog items found</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.SelectedType) || !string.IsNullOrEmpty(Model.SelectedStatus) || !string.IsNullOrEmpty(Model.SortBy))
+        {
+            <a asp-action="Index" class="btn btn-sm btn-lib-outline">
+                <i class="bi bi-x-circle me-1"></i>Clear Filters
+            </a>
+        }
+    </div>
+
+    @if (!Model.Results.Any())
+    {
+        <div class="lib-card text-center py-5">
+            <i class="bi bi-journal-x" style="font-size: 3.5rem; color: var(--muted);"></i>
+            <h4 class="mt-3">No matching items found</h4>
+            <p class="text-muted">Try adjusting your search terms or clearing active category/status filters.</p>
+            <a asp-action="Index" class="btn btn-lib-primary mt-2">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset Search
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- Responsive 3-Column Item Cards Grid -->
+        <div class="row g-4">
+            @foreach (var item in Model.Results)
+            {
+                var typeClass = item.ItemType switch
+                {
+                    LibraTrack.Models.ItemType.Book => "type-book",
+                    LibraTrack.Models.ItemType.Music => "type-music",
+                    LibraTrack.Models.ItemType.Toy => "type-toy",
+                    _ => "type-book"
+                };
+
+                var statusClass = item.Status switch
+                {
+                    LibraTrack.Models.ItemStatus.Available => "status-available",
+                    LibraTrack.Models.ItemStatus.Borrowed => "status-borrowed",
+                    LibraTrack.Models.ItemStatus.Damaged => "status-damaged",
+                    LibraTrack.Models.ItemStatus.Destroyed => "status-destroyed",
+                    _ => "status-available"
+                };
+
+                <div class="col-xl-4 col-md-6 col-12">
+                    <div class="item-card h-100 d-flex flex-column">
+                        <div class="item-card-type-bar @typeClass"></div>
+                        
+                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                        {
+                            <div class="item-card-image-wrap">
+                                <img src="@item.ImageUrl" alt="@item.Name" class="item-card-image" loading="lazy" />
+                            </div>
+                        }
+
+                        <div class="item-card-body d-flex flex-column flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="type-badge @typeClass">@item.ItemType</span>
+                                <span class="status-badge @statusClass">@item.Status</span>
+                            </div>
+
+                            <h5 class="item-card-title">@item.Name</h5>
+
+                            <div class="item-card-meta mb-2 text-muted small">
+                                @if (item is LibraTrack.Models.Book bItem)
+                                {
+                                    <div><i class="bi bi-person-fill me-1"></i>@bItem.Author &bull; @bItem.Genre</div>
+                                }
+                                else if (item is LibraTrack.Models.Music mItem)
+                                {
+                                    <div><i class="bi bi-mic-fill me-1"></i>@mItem.Artist &bull; @mItem.ReleaseYear (@mItem.Format)</div>
+                                }
+                                else if (item is LibraTrack.Models.Toy tItem)
+                                {
+                                    <div><i class="bi bi-puzzle-fill me-1"></i>@tItem.ToyType &bull; Min Age: @tItem.RecommendedAgeMin yrs</div>
+                                }
+                            </div>
+
+                            <p class="item-card-desc flex-grow-1">@item.Description</p>
+
+                            <div class="item-card-footer mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                                <span class="badge bg-light text-dark border font-monospace">
+                                    <i class="bi bi-upc-scan me-1 text-muted"></i>@item.LibraryCode
+                                </span>
+                                
+                                <a asp-controller="Catalog" asp-action="Details" asp-route-id="@item.Id" class="btn btn-lib-outline btn-sm">
+                                    View Details <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

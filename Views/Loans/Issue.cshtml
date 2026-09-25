@@ -1,0 +1,111 @@
+@model LibraTrack.Models.ViewModels.IssueLoanViewModel
+@{
+    ViewData["Title"] = "Issue Item to Borrower";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-controller="Loans" asp-action="Index">Loans</a></li>
+                <li class="breadcrumb-item active">Issue Item</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-box-arrow-up-right text-primary me-2"></i>Issue Library Item
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="lib-card lib-form">
+                <div class="lib-card-header">
+                    <i class="bi bi-journal-plus" style="color:var(--caramel);font-size:1.25rem;"></i>
+                    <h3>New Checkout Transaction</h3>
+                </div>
+
+                <form asp-action="Issue" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row g-3">
+                        <!-- Select Item -->
+                        <div class="col-12">
+                            <label asp-for="ItemId" class="form-label">Select Available Item</label>
+                            <select asp-for="ItemId" class="form-select">
+                                <option value="">-- Choose an item from available catalog --</option>
+                                @foreach (var item in Model.AvailableItems)
+                                {
+                                    <option value="@item.Id" selected="@(item.Id == Model.ItemId)">
+                                        [@item.LibraryCode] @item.Name (@item.ItemType)
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="ItemId" class="text-danger"></span>
+                            @if (!Model.AvailableItems.Any())
+                            {
+                                <div class="text-danger small mt-1">No items are currently available in the catalog.</div>
+                            }
+                        </div>
+
+                        <!-- Select Borrower -->
+                        <div class="col-12">
+                            <label asp-for="BorrowerId" class="form-label">Select Registered Patron</label>
+                            <select asp-for="BorrowerId" class="form-select">
+                                <option value="">-- Choose active borrower by card number or name --</option>
+                                @foreach (var b in Model.ActiveBorrowers)
+                                {
+                                    <option value="@b.Id" selected="@(b.Id == Model.BorrowerId)">
+                                        [@b.BorrowerCardNumber] @b.FullName - @b.Email
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="BorrowerId" class="text-danger"></span>
+                            <div class="form-text">
+                                Don't see the patron? <a asp-controller="Borrowers" asp-action="Create" target="_blank">Register new borrower here</a>.
+                            </div>
+                        </div>
+
+                        <!-- Issue Date -->
+                        <div class="col-md-6">
+                            <label asp-for="BorrowDate" class="form-label"></label>
+                            <input asp-for="BorrowDate" class="form-control" type="date" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="BorrowDate" class="text-danger"></span>
+                        </div>
+
+                        <!-- Loan Duration -->
+                        <div class="col-md-6">
+                            <label asp-for="LoanDays" class="form-label">Loan Period</label>
+                            <select asp-for="LoanDays" class="form-select" id="loanDaysSelect">
+                                <option value="7">7 Days (1 Week)</option>
+                                <option value="14" selected>14 Days (Standard 2 Weeks)</option>
+                                <option value="21">21 Days (3 Weeks)</option>
+                                <option value="28">28 Days (4 Weeks)</option>
+                            </select>
+                            <span asp-validation-for="LoanDays" class="text-danger"></span>
+                        </div>
+
+                        <!-- Staff Notes -->
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Optional notes regarding physical condition at checkout, accessories included, etc."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-lib-outline">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-lib-primary" @(Model.AvailableItems.Any() && Model.ActiveBorrowers.Any() ? "" : "disabled")>
+                            <i class="bi bi-check2-circle me-1"></i>Confirm & Issue Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,243 @@
+@model LibraTrack.Models.ViewModels.ManagerStatisticsViewModel
+@{
+    ViewData["Title"] = "Borrowing Statistics";
+}
+
+<!-- Page Header (Section 5 of design.md) -->
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house me-1"></i>Home</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Manager</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Statistics</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h1 class="page-title">
+                <i class="bi bi-graph-up-arrow me-2"></i>Borrowing Statistics
+            </h1>
+            <a asp-action="Index" class="btn btn-lib-outline">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- Date Range Filter Bar -->
+    <div class="lib-card mb-4 p-3">
+        <form method="get" asp-action="Statistics" class="row g-2 align-items-center">
+            <div class="col-md-4 col-12">
+                <label class="form-label small fw-bold text-muted mb-1">From Date:</label>
+                <input type="date" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-4 col-12">
+                <label class="form-label small fw-bold text-muted mb-1">To Date:</label>
+                <input type="date" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-4 col-12 d-flex align-items-end gap-2 pt-md-3">
+                <button type="submit" class="btn btn-lib-primary btn-sm flex-grow-1">
+                    <i class="bi bi-funnel me-1"></i> Apply Filter
+                </button>
+                @if (Model.FromDate.HasValue || Model.ToDate.HasValue)
+                {
+                    <a asp-action="Statistics" class="btn btn-lib-outline btn-sm">Reset</a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <!-- 3 Key Insight Stat Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Stat 1: Most Popular Item -->
+        <div class="col-lg-4 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(212,131,26,0.12); color:var(--toy-color);">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label mb-1">Most Popular Item</div>
+                    @if (!string.IsNullOrEmpty(Model.MostPopularItemName))
+                    {
+                        <div class="fw-bold fs-6 text-dark text-truncate" title="@Model.MostPopularItemName">@Model.MostPopularItemName</div>
+                        <div class="small text-muted">
+                            <span class="badge bg-light text-dark border">@Model.MostPopularItemType</span>
+                            <strong class="ms-1 text-primary">@Model.MostPopularItemBorrowCount borrow(s)</strong>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted small">No borrowing data available</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat 2: Most Active Borrower -->
+        <div class="col-lg-4 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(139,94,60,0.12); color:var(--caramel);">
+                    <i class="bi bi-person-check-fill"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label mb-1">Most Active Borrower</div>
+                    @if (!string.IsNullOrEmpty(Model.MostActiveBorrowerName))
+                    {
+                        <div class="fw-bold fs-6 text-dark text-truncate">@Model.MostActiveBorrowerName</div>
+                        <div class="small text-muted font-monospace">
+                            @Model.MostActiveBorrowerCardNumber &bull; <strong class="text-success">@Model.MostActiveBorrowerCount checkout(s)</strong>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted small">No patron loans in range</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Stat 3: Average Loan Duration -->
+        <div class="col-lg-4 col-md-12 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(46,109,164,0.12); color:var(--borrowed);">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label mb-1">Average Loan Duration</div>
+                    <div class="stat-number">@Model.AverageLoanDurationDays days</div>
+                    <div class="small text-muted">average checkout time</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 5: Monthly Fine Revenue Line Chart (Last 12 Months) -->
+    <div class="lib-card mb-4">
+        <div class="lib-card-header d-flex align-items-center gap-2">
+            <i class="bi bi-cash-coin text-warning fs-5"></i>
+            <h3 class="mb-0">Monthly Fine Revenue (Last 12 Months)</h3>
+        </div>
+        <div style="position: relative; height: 280px;">
+            <canvas id="fineChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Stat 4: Overdue Items Table -->
+    <div class="lib-card">
+        <div class="lib-card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history text-danger fs-5"></i>
+                <h3 class="mb-0">Currently Overdue Loans</h3>
+            </div>
+            <span class="badge bg-danger">@Model.OverdueItems.Count item(s)</span>
+        </div>
+
+        @if (!Model.OverdueItems.Any())
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                <h5 class="mt-3 text-success">No overdue items</h5>
+                <p class="text-muted small">All active borrowed items are currently within their due date windows.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="lib-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Borrower Name</th>
+                            <th>Item Name</th>
+                            <th>Due Date</th>
+                            <th>Days Overdue</th>
+                            <th>Fine Accruing ($1/day)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var od in Model.OverdueItems)
+                        {
+                            <tr>
+                                <td><strong>@od.BorrowerName</strong></td>
+                                <td>@od.ItemName</td>
+                                <td>@od.DueDate.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    <span class="badge bg-danger">@od.DaysOverdue day(s) late</span>
+                                </td>
+                                <td>
+                                    <strong class="text-danger">$@od.FineAccruing.ToString("N2")</strong>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var fineCanvas = document.getElementById('fineChart');
+            if (fineCanvas) {
+                new Chart(fineCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FineMonthsLabels)),
+                        datasets: [{
+                            label: 'Fine Revenue ($)',
+                            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FineMonthlyRevenues)),
+                            borderColor: '#8B5E3C',
+                            backgroundColor: 'rgba(139,94,60,0.08)',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#8B5E3C',
+                            pointBorderColor: '#FAF7F2',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ' $' + Number(context.parsed.y).toFixed(2) + ' collected';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Lato', size: 11 } }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) { return '$' + Number(value).toFixed(2); },
+                                    font: { family: 'Lato', size: 11 }
+                                },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutCubic'
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}

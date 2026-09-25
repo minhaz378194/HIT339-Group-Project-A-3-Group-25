@@ -1,0 +1,102 @@
+@model LibraTrack.Models.ViewModels.LoginViewModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Staff Authentication";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff Login - LibraTrack</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/library-theme.css" asp-append-version="true" />
+</head>
+<body class="login-page">
+
+    <div class="login-card">
+        <div class="login-logo">
+            <i class="bi bi-book-half" style="font-size: 3rem; color: var(--caramel);"></i>
+            <h2>Libra<span>Track</span></h2>
+            <p>Library Staff Management Portal</p>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger py-2 px-3 mb-3 small" style="border-radius: 8px;">
+                <i class="bi bi-exclamation-circle-fill me-1"></i>@TempData["Error"]
+            </div>
+        }
+
+        <form asp-action="Login" method="post" class="lib-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReturnUrl" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3 small"></div>
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label">Username or Email</label>
+                <div class="input-group">
+                    <span class="input-group-text" style="background:var(--cream-dark); border-color:var(--border);">
+                        <i class="bi bi-person text-muted"></i>
+                    </span>
+                    <input asp-for="Username" class="form-control" placeholder="e.g. admin or admin@library.com" autofocus />
+                </div>
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text" style="background:var(--cream-dark); border-color:var(--border);">
+                        <i class="bi bi-key text-muted"></i>
+                    </span>
+                    <input asp-for="Password" id="passwordInput" class="form-control" placeholder="••••••••" />
+                    <button class="btn btn-outline-secondary d-flex align-items-center" type="button" id="togglePasswordBtn" title="Toggle password visibility" style="border-color:var(--border); background:var(--cream-dark); color:var(--espresso);">
+                        <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="form-check mb-4">
+                <input class="form-check-input" asp-for="RememberMe" />
+                <label class="form-check-label small text-muted" asp-for="RememberMe">
+                    Keep me signed in on this workstation
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-lib-primary w-100 py-2">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Sign In to Staff System
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <a asp-controller="Catalog" asp-action="Index" class="small text-muted">
+                <i class="bi bi-arrow-left me-1"></i>Return to Public Search Portal
+            </a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleBtn = document.getElementById("togglePasswordBtn");
+            const passwordInput = document.getElementById("passwordInput");
+            const toggleIcon = document.getElementById("togglePasswordIcon");
+
+            if (toggleBtn && passwordInput && toggleIcon) {
+                toggleBtn.addEventListener("click", function () {
+                    const isPassword = passwordInput.type === "password";
+                    passwordInput.type = isPassword ? "text" : "password";
+                    toggleIcon.className = isPassword ? "bi bi-eye-slash" : "bi bi-eye";
+                });
+            }
+        });
+    </script>
+</body>
+</html>

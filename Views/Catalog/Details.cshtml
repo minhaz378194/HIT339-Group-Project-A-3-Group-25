@@ -1,0 +1,309 @@
+@model LibraTrack.Models.Item
+@{
+    ViewData["Title"] = Model.Name;
+    var typeClass = Model.ItemType switch
+    {
+        LibraTrack.Models.ItemType.Book => "type-book",
+        LibraTrack.Models.ItemType.Music => "type-music",
+        LibraTrack.Models.ItemType.Toy => "type-toy",
+        _ => "type-book"
+    };
+
+    var statusClass = Model.Status switch
+    {
+        LibraTrack.Models.ItemStatus.Available => "status-available",
+        LibraTrack.Models.ItemStatus.Borrowed => "status-borrowed",
+        LibraTrack.Models.ItemStatus.Damaged => "status-damaged",
+        LibraTrack.Models.ItemStatus.Destroyed => "status-destroyed",
+        _ => "status-available"
+    };
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index" asp-route-type="@Model.ItemType">@Model.ItemType Collection</a></li>
+                <li class="breadcrumb-item active text-truncate" style="max-width: 250px;">@Model.Name</li>
+            </ol>
+        </nav>
+        <h1 class="page-title">
+            <i class="bi bi-bookmark-star-fill text-warning me-2"></i>@Model.Name
+        </h1>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-4">
+        <!-- Item Cover & Status Card -->
+        <div class="col-lg-4">
+            <div class="lib-card text-center p-4">
+                @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                    <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid rounded shadow-sm mb-3" 
+                         style="max-height: 380px; width: 100%; object-fit: cover; border: 1px solid var(--border);" />
+                }
+                else
+                {
+                    <div class="bg-light p-5 rounded mb-3 text-muted d-flex flex-column align-items-center">
+                        <i class="bi bi-image fs-1"></i>
+                        <span>No graphic uploaded</span>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <span class="type-badge @typeClass">@Model.ItemType</span>
+                    <span class="status-badge @statusClass">@Model.Status</span>
+                </div>
+
+                <div class="p-3 bg-light rounded text-start small mb-3">
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Library Code:</span>
+                        <strong><code>@Model.LibraryCode</code></strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Catalog ID:</span>
+                        <span>#@Model.Id</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Replacement Value:</span>
+                        <span>$@Model.ReplacementCost.ToString("F2")</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">Added to Library:</span>
+                        <span>@Model.CreatedAt.ToString("dd MMM yyyy")</span>
+                    </div>
+                </div>
+
+                @if (User.IsInRole("Reception"))
+                {
+                    @if (Model.Status == LibraTrack.Models.ItemStatus.Available)
+                    {
+                        <a asp-controller="Loans" asp-action="Issue" asp-route-itemId="@Model.Id" class="btn btn-lib-primary w-100 mb-2">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Issue to Borrower
+                        </a>
+                    }
+                    else if (Model.Status == LibraTrack.Models.ItemStatus.Borrowed)
+                    {
+                        var activeLoan = Model.Loans.FirstOrDefault(l => l.ReturnDate == null);
+                        if (activeLoan != null)
+                        {
+                            <a asp-controller="Loans" asp-action="Return" asp-route-id="@activeLoan.Id" class="btn btn-lib-primary w-100 mb-2">
+                                <i class="bi bi-box-arrow-in-left me-1"></i>Process Return
+                            </a>
+                        }
+                    }
+                }
+
+                <a asp-controller="Catalog" asp-action="Index" class="btn btn-lib-outline w-100">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Catalog
+                </a>
+            </div>
+        </div>
+
+        <!-- Detailed Specifications & Overview -->
+        <div class="col-lg-8">
+            <div class="lib-card">
+                <div class="lib-card-header">
+                    <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                    <h3>Item Overview & Specifications</h3>
+                </div>
+
+                <h4 class="fs-5 mb-2">Description</h4>
+                <p class="lead fs-6 text-muted mb-4" style="line-height: 1.8;">
+                    @Model.Description
+                </p>
+
+                <hr class="my-4" />
+
+                <h4 class="fs-5 mb-3">Classification & Technical Details</h4>
+
+                <div class="row g-3">
+                    @if (Model is LibraTrack.Models.Book book)
+                    {
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Primary Author</span>
+                                <strong><i class="bi bi-person-fill me-1 text-primary"></i>@book.Author</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Literary Genre</span>
+                                <strong><i class="bi bi-tag-fill me-1 text-primary"></i>@book.Genre</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Standard Book Number (ISBN)</span>
+                                <span>@(string.IsNullOrEmpty(book.ISBN) ? "N/A" : book.ISBN)</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Publication Year</span>
+                                <span>@(book.PublicationYear?.ToString() ?? "Unknown")</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Publisher</span>
+                                <span>@(string.IsNullOrEmpty(book.Publisher) ? "Independent" : book.Publisher)</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Total Pages</span>
+                                <span>@(book.PageCount.HasValue ? $"{book.PageCount} pages" : "N/A")</span>
+                            </div>
+                        </div>
+                    }
+                    else if (Model is LibraTrack.Models.Music music)
+                    {
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Artist / Composer</span>
+                                <strong><i class="bi bi-mic-fill me-1 text-primary"></i>@music.Artist</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Release Year</span>
+                                <strong><i class="bi bi-calendar-event me-1 text-primary"></i>@music.ReleaseYear</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Physical Format</span>
+                                <span>@(string.IsNullOrEmpty(music.Format) ? "CD / Audio" : music.Format)</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Record Label</span>
+                                <span>@(string.IsNullOrEmpty(music.RecordLabel) ? "Standard Label" : music.RecordLabel)</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Music Genre</span>
+                                <span>@(string.IsNullOrEmpty(music.Genre) ? "Various" : music.Genre)</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Total Duration</span>
+                                <span>@(music.DurationMinutes.HasValue ? $"{music.DurationMinutes} minutes" : "Full Album")</span>
+                            </div>
+                        </div>
+                    }
+                    else if (Model is LibraTrack.Models.Toy toy)
+                    {
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Toy Category</span>
+                                <strong><i class="bi bi-puzzle-fill me-1 text-warning"></i>@toy.ToyType</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Recommended Age</span>
+                                <strong><i class="bi bi-people-fill me-1 text-warning"></i>@toy.RecommendedAgeMin @(toy.RecommendedAgeMax.HasValue ? $"- {toy.RecommendedAgeMax}" : "+") years</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Manufacturer / Brand</span>
+                                <span>@(string.IsNullOrEmpty(toy.Brand) ? "Educational Toy Co." : toy.Brand)</span>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="p-3 rounded" style="background:var(--cream);">
+                                <span class="text-muted small d-block">Piece / Component Count</span>
+                                <span>@(toy.PieceCount.HasValue ? $"{toy.PieceCount} pieces" : "Complete Set")</span>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(toy.SafetyNotes))
+                        {
+                            <div class="col-12">
+                                <div class="p-3 rounded bg-warning bg-opacity-10 border border-warning">
+                                    <span class="text-warning-emphasis fw-bold d-block small mb-1">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Safety Advisory
+                                    </span>
+                                    <span class="small">@toy.SafetyNotes</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Borrowing Status & History (Visible to Authenticated Staff) -->
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                <div class="lib-card mt-4">
+                    <div class="lib-card-header">
+                        <i class="bi bi-clock-history text-muted fs-5"></i>
+                        <h3>Borrowing Transaction History</h3>
+                    </div>
+
+                    @if (!Model.Loans.Any())
+                    {
+                        <p class="text-muted small mb-0">No past borrowing transactions recorded for this item.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="lib-table">
+                                <thead>
+                                    <tr>
+                                        <th>Borrower</th>
+                                        <th>Card #</th>
+                                        <th>Issued On</th>
+                                        <th>Due Date</th>
+                                        <th>Returned</th>
+                                        <th>Status / Fine</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var loan in Model.Loans)
+                                    {
+                                        <tr>
+                                            <td><strong>@loan.Borrower.FullName</strong></td>
+                                            <td><code>@loan.Borrower.BorrowerCardNumber</code></td>
+                                            <td>@loan.BorrowDate.ToString("dd MMM yyyy")</td>
+                                            <td>@loan.DueDate.ToString("dd MMM yyyy")</td>
+                                            <td>
+                                                @if (loan.ReturnDate.HasValue)
+                                                {
+                                                    <span class="text-success"><i class="bi bi-check2-circle me-1"></i>@loan.ReturnDate.Value.ToString("dd MMM yyyy")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-primary">Currently on Loan</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (loan.FineAmount > 0)
+                                                {
+                                                    <span class="badge @(loan.FinePaid ? "bg-success" : "bg-danger")">
+                                                        $@loan.FineAmount.ToString("F2") @(loan.FinePaid ? "Paid" : "Unpaid")
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">No fines</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

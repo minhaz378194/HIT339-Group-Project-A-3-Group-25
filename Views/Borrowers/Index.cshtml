@@ -1,0 +1,323 @@
+@model LibraTrack.Models.ViewModels.ReceptionDashboardViewModel
+@{
+    ViewData["Title"] = "Reception Dashboard";
+}
+
+<!-- Page Header (Section 5 of design.md) -->
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item active">Reception Desk Hub</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h1 class="page-title">
+                <i class="bi bi-person-badge text-success me-2"></i>Reception Dashboard
+            </h1>
+            <span class="badge rounded-pill px-3 py-2" style="background:var(--walnut); color:var(--cream); font-size:0.85rem;">
+                <i class="bi bi-person-check me-1 text-success"></i>Role: Front Desk Reception
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- 4 Stat Cards (Section 7 & 14 of design.md) -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(139,94,60,0.12);color:var(--caramel);">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.TotalBorrowers</div>
+                    <div class="stat-label">Total Borrowers</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(46,109,164,0.12);color:var(--borrowed);">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.ActiveLoansCount</div>
+                    <div class="stat-label">Active Loans</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(200,121,65,0.12);color:var(--damaged);">
+                    <i class="bi bi-alarm"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number text-danger">@Model.OverdueLoansCount</div>
+                    <div class="stat-label">Overdue Loans</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 col-12">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(192,57,43,0.12);color:var(--destroyed);">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-number">@Model.TotalUnpaidFines.ToString("C")</div>
+                    <div class="stat-label">Unpaid Fines</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Action Bar -->
+    <div class="lib-card mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h4 class="mb-1 fs-5"><i class="bi bi-lightning-charge-fill me-2 text-warning"></i>Front Desk Operations</h4>
+                <p class="text-muted small mb-0">Register patrons, check out library items, and record returns.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="Create" class="btn btn-lib-primary">
+                    <i class="bi bi-person-plus-fill me-1"></i>Register Borrower
+                </a>
+                <a asp-controller="Loans" asp-action="Issue" class="btn btn-lib-primary" style="background-color: var(--borrowed);">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Issue Item
+                </a>
+                <a asp-controller="Loans" asp-action="Index" asp-route-filter="active" class="btn btn-lib-outline">
+                    <i class="bi bi-arrow-return-left me-1"></i>Process Returns
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- OVERDUE ALERTS SECTION (IF ANY) -->
+    @if (Model.OverdueLoans.Any())
+    {
+        <div class="lib-card mb-4 border-warning border-opacity-50">
+            <div class="lib-card-header bg-warning bg-opacity-10 rounded p-3 mb-3">
+                <i class="bi bi-exclamation-triangle-fill text-warning-emphasis fs-4"></i>
+                <h3 class="fs-5 mb-0 text-warning-emphasis">Immediate Overdue Action Required (@Model.OverdueLoans.Count items)</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="lib-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Code</th>
+                            <th>Borrower</th>
+                            <th>Due Date</th>
+                            <th>Overdue By</th>
+                            <th>Late Fine ($1.50/day)</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loan in Model.OverdueLoans)
+                        {
+                            var fine = loan.CalculateDynamicFine();
+                            <tr>
+                                <td><strong>@loan.Item.Name</strong></td>
+                                <td><code>@loan.Item.LibraryCode</code></td>
+                                <td>@loan.Borrower.FullName (<code>@loan.Borrower.BorrowerCardNumber</code>)</td>
+                                <td class="text-danger fw-bold">@loan.DueDate.ToString("dd MMM yyyy")</td>
+                                <td><span class="badge bg-danger">@loan.OverdueDays days late</span></td>
+                                <td class="fw-bold text-danger">$@fine.ToString("F2")</td>
+                                <td class="text-end">
+                                    <a asp-controller="Loans" asp-action="Return" asp-route-id="@loan.Id" class="btn btn-sm btn-lib-primary">
+                                        <i class="bi bi-box-arrow-in-left me-1"></i>Return & Fine
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Registered Borrowers Section -->
+    <div class="lib-card mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-people-fill text-primary fs-5"></i>
+                <h3 class="fs-5 mb-0">Registered Library Patrons</h3>
+            </div>
+            <div class="col-md-5">
+                <form method="get" asp-action="Index" class="d-flex gap-2">
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="Search by card #, name, email, phone..." />
+                    <button type="submit" class="btn btn-sm btn-lib-primary">Search</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="lib-table">
+                <thead>
+                    <tr>
+                        <th>Card #</th>
+                        <th>Patron Name</th>
+                        <th>Email Address</th>
+                        <th>Phone</th>
+                        <th>Active Loans</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Borrowers.Any())
+                    {
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No borrower records found.</td></tr>
+                    }
+                    @foreach (var b in Model.Borrowers)
+                    {
+                        var activeCount = b.Loans.Count(l => l.ReturnDate == null);
+                        <tr>
+                            <td><strong><code>@b.BorrowerCardNumber</code></strong></td>
+                            <td>
+                                <div class="fw-bold">@b.FullName</div>
+                                <small class="text-muted">Member since @b.MembershipDate.ToString("MMM yyyy")</small>
+                            </td>
+                            <td>@b.Email</td>
+                            <td>@b.Phone</td>
+                            <td>
+                                @if (activeCount > 0)
+                                {
+                                    <span class="badge bg-primary">@activeCount active</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">0 items</span>
+                                }
+                            </td>
+                            <td>
+                                @if (b.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Suspended</span>
+                                }
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Details" asp-route-id="@b.Id" class="btn btn-outline-secondary" title="View Profile & Loans">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@b.Id" class="btn btn-outline-primary" title="Edit Contact Info">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-controller="Loans" asp-action="Issue" asp-route-borrowerId="@b.Id" class="btn btn-outline-success" title="Issue Item to this Borrower">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@b.Id" method="post" class="d-inline"
+                                          onsubmit="return confirm('Are you sure you want to delete borrower @b.FullName? Active loans will prevent deletion.');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger" title="Delete Borrower">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent 10 Transactions Table (Section 14 of design.md) -->
+    <div class="lib-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history text-muted fs-5"></i>
+                <h3 class="fs-5 mb-0">Recent Library Transactions (Last 10)</h3>
+            </div>
+            <a asp-controller="Loans" asp-action="Index" class="btn btn-sm btn-lib-outline">
+                View All Loans <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="lib-table">
+                <thead>
+                    <tr>
+                        <th>Item Code</th>
+                        <th>Item Title</th>
+                        <th>Borrower</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Return Status</th>
+                        <th>Fine Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var loan in Model.RecentLoans)
+                    {
+                        <tr>
+                            <td><code>@loan.Item.LibraryCode</code></td>
+                            <td><strong>@loan.Item.Name</strong></td>
+                            <td>@loan.Borrower.FullName</td>
+                            <td>@loan.BorrowDate.ToString("dd MMM yyyy")</td>
+                            <td>@loan.DueDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                @if (loan.ReturnDate.HasValue)
+                                {
+                                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Returned @loan.ReturnDate.Value.ToString("dd/MM")</span>
+                                }
+                                else if (loan.IsOverdue)
+                                {
+                                    <span class="badge bg-danger">Overdue (@loan.OverdueDays d)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-primary">Active</span>
+                                }
+                            </td>
+                            <td>
+                                @if (loan.FineAmount > 0)
+                                {
+                                    <span class="badge @(loan.FinePaid ? "bg-success" : "bg-danger")">
+                                        $@loan.FineAmount.ToString("F2") @(loan.FinePaid ? "Paid" : "Unpaid")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">—</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @if (loan.ReturnDate == null)
+                                {
+                                    <a asp-controller="Loans" asp-action="Return" asp-route-id="@loan.Id" class="btn btn-sm btn-lib-primary py-1 px-2" style="font-size: 0.8rem;">
+                                        Return
+                                    </a>
+                                }
+                                else if (!loan.FinePaid && loan.FineAmount > 0)
+                                {
+                                    <form asp-controller="Loans" asp-action="PayFine" asp-route-id="@loan.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-success py-1 px-2" style="font-size: 0.8rem;">
+                                            Pay Fine
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Completed</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
