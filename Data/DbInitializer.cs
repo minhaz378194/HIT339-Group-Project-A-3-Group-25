@@ -266,6 +266,10 @@ namespace LibraTrack.Data
                     CreatedAt = DateTime.UtcNow.AddMonths(-3)
                 }
             };
+            for (int i = 0; i < books.Count; i++)
+            {
+                books[i].BranchId = branches[i % branches.Count].Id;
+            }
             context.Books.AddRange(books);
             context.SaveChanges();
 
@@ -387,6 +391,10 @@ namespace LibraTrack.Data
                     CreatedAt = DateTime.UtcNow.AddMonths(-2)
                 }
             };
+            for (int i = 0; i < musicList.Count; i++)
+            {
+                musicList[i].BranchId = branches[(i + 1) % branches.Count].Id;
+            }
             context.MusicAlbums.AddRange(musicList);
             context.SaveChanges();
 
@@ -508,6 +516,10 @@ namespace LibraTrack.Data
                     CreatedAt = DateTime.UtcNow.AddMonths(-2)
                 }
             };
+            for (int i = 0; i < toys.Count; i++)
+            {
+                toys[i].BranchId = branches[(i + 2) % branches.Count].Id;
+            }
             context.Toys.AddRange(toys);
             context.SaveChanges();
 

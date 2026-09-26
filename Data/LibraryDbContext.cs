@@ -35,6 +35,43 @@ namespace LibraTrack.Data
                 .HasIndex(i => i.LibraryCode)
                 .IsUnique();
 
+            // Branch Unique constraint on BranchCode
+            modelBuilder.Entity<Branch>()
+                .HasIndex(b => b.BranchCode)
+                .IsUnique();
+
+            // Item - Branch Relationship
+            modelBuilder.Entity<Item>()
+                .HasOne(i => i.Branch)
+                .WithMany(b => b.Items)
+                .HasForeignKey(i => i.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ItemTransfer Relationships
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.Item)
+                .WithMany()
+                .HasForeignKey(t => t.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.FromBranch)
+                .WithMany()
+                .HasForeignKey(t => t.FromBranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.ToBranch)
+                .WithMany()
+                .HasForeignKey(t => t.ToBranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(t => t.RequestedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // Unique constraint on BorrowerCardNumber
             modelBuilder.Entity<Borrower>()
                 .HasIndex(b => b.BorrowerCardNumber)
