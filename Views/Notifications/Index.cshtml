@@ -1,0 +1,295 @@
+@model LibraTrack.Models.ViewModels.NotificationDashboardViewModel
+@{
+    ViewData["Title"] = "Patron Notifications Dashboard";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item">Staff Management</li>
+                <li class="breadcrumb-item active">Automated Notifications</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h1 class="page-title mb-1">
+                    <i class="bi bi-bell-fill text-warning me-2"></i>Patron Notifications Dashboard
+                </h1>
+                <p class="text-muted small mb-0">
+                    Simulated delivery log for patron checkout receipts, due date reminders, overdue warnings, and fine assessments.
+                </p>
+            </div>
+            <div>
+                <form asp-action="RunManualCheck" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-lib-outline" title="Trigger background scanner immediately">
+                        <i class="bi bi-arrow-repeat me-1"></i>Scan Due & Overdue Now
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- KPI Metrics Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Total Sent</span>
+                <span class="fs-4 fw-bold text-dark">@Model.TotalSentCount</span>
+                <small class="text-muted"><i class="bi bi-send-check text-success me-1"></i>All channels</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Email Alerts</span>
+                <span class="fs-4 fw-bold text-info">@Model.EmailCount</span>
+                <small class="text-muted"><i class="bi bi-envelope-at me-1"></i>Receipts/Notices</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">SMS Alerts</span>
+                <span class="fs-4 fw-bold text-primary">@Model.SmsCount</span>
+                <small class="text-muted"><i class="bi bi-chat-dots me-1"></i>Mobile texts</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Due Soon</span>
+                <span class="fs-4 fw-bold text-warning">@Model.DueSoonCount</span>
+                <small class="text-muted"><i class="bi bi-clock-history me-1"></i>&le; 2 days</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Overdue</span>
+                <span class="fs-4 fw-bold text-danger">@Model.OverdueCount</span>
+                <small class="text-muted"><i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>Lapsed loans</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Fine Notices</span>
+                <span class="fs-4 fw-bold text-dark">@Model.FineIssuedCount</span>
+                <small class="text-muted"><i class="bi bi-cash-stack text-warning me-1"></i>Fees issued</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="lib-card p-3 mb-4">
+        <form method="get" asp-action="Index" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Filter by Type</label>
+                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="" selected="@(!Model.SelectedType.HasValue ? "selected" : null)">All Notification Types</option>
+                    @foreach (var t in Enum.GetValues<LibraTrack.Models.NotificationType>())
+                    {
+                        <option value="@t" selected="@(Model.SelectedType == t ? "selected" : null)">@t</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Filter by Channel</label>
+                <select name="channel" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="" selected="@(!Model.SelectedChannel.HasValue ? "selected" : null)">All Channels (Email & SMS)</option>
+                    @foreach (var c in Enum.GetValues<LibraTrack.Models.NotificationChannel>())
+                    {
+                        <option value="@c" selected="@(Model.SelectedChannel == c ? "selected" : null)">@c</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label small text-muted mb-1">Search Notification Log</label>
+                <div class="input-group input-group-sm">
+                    <input type="text" name="search" value="@Model.SearchTerm" class="form-control" placeholder="Patron name, card #, or subject..." />
+                    <button type="submit" class="btn btn-lib-primary">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary w-100" style="margin-top: 1.5rem;">
+                    <i class="bi bi-x-circle me-1"></i>Reset Filters
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Notifications Table -->
+    <div class="lib-card p-0 overflow-hidden shadow-sm">
+        <div class="table-responsive">
+            <table class="lib-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;">ID</th>
+                        <th style="width: 100px;">Channel</th>
+                        <th style="width: 130px;">Event Type</th>
+                        <th>Patron Recipient</th>
+                        <th>Subject & Message Preview</th>
+                        <th style="width: 150px;">Sent Date/Time</th>
+                        <th style="width: 90px;">Status</th>
+                        <th style="width: 80px;" class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Notifications.Any())
+                    {
+                        foreach (var n in Model.Notifications)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="font-monospace text-muted small">#@n.Id</span>
+                                </td>
+                                <td>
+                                    @if (n.Channel == LibraTrack.Models.NotificationChannel.Email)
+                                    {
+                                        <span class="badge bg-info text-dark">
+                                            <i class="bi bi-envelope-fill me-1"></i>Email
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary text-white">
+                                            <i class="bi bi-chat-dots-fill me-1"></i>SMS
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (n.Type)
+                                    {
+                                        case LibraTrack.Models.NotificationType.Borrowed:
+                                            <span class="badge" style="background:#4361ee;color:#fff;">
+                                                <i class="bi bi-journal-check me-1"></i>Borrowed
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.NotificationType.DueSoon:
+                                            <span class="badge" style="background:#e76f51;color:#fff;">
+                                                <i class="bi bi-clock-history me-1"></i>Due Soon
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.NotificationType.Overdue:
+                                            <span class="badge bg-danger text-white">
+                                                <i class="bi bi-exclamation-octagon-fill me-1"></i>Overdue
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.NotificationType.FineIssued:
+                                            <span class="badge bg-dark text-warning border border-warning">
+                                                <i class="bi bi-cash-stack me-1"></i>Fine Issued
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.NotificationType.ReservationReady:
+                                            <span class="badge bg-success text-white">
+                                                <i class="bi bi-box2-heart me-1"></i>Ready
+                                            </span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">@n.Borrower.FullName</div>
+                                    <div class="small text-muted font-monospace">
+                                        <i class="bi bi-person-badge me-1"></i>@n.Borrower.BorrowerCardNumber
+                                        &bull;
+                                        @(n.Channel == LibraTrack.Models.NotificationChannel.Email ? n.Borrower.Email : n.Borrower.Phone)
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-truncate" style="max-width: 320px;" title="@n.Subject">
+                                        @n.Subject
+                                    </div>
+                                    <div class="small text-muted text-truncate" style="max-width: 320px;" title="@n.Message">
+                                        @n.Message
+                                    </div>
+                                    @if (n.Loan != null && n.Loan.Item != null)
+                                    {
+                                        <div class="small text-secondary mt-1">
+                                            <i class="bi bi-link-45deg me-1"></i>Ref: [@n.Loan.Item.LibraryCode] @n.Loan.Item.Name
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="small text-muted d-block">
+                                        @n.CreatedAt.ToString("dd MMM yyyy")
+                                    </span>
+                                    <span class="small text-secondary font-monospace">
+                                        @n.CreatedAt.ToString("HH:mm:ss") UTC
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check2 me-1"></i>Sent
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#notifModal-@n.Id" title="View Message Details">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+
+                                    <!-- Details Modal -->
+                                    <div class="modal fade" id="notifModal-@n.Id" tabindex="-1" aria-labelledby="modalLabel-@n.Id" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content text-start">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title fs-6" id="modalLabel-@n.Id">
+                                                        <i class="bi bi-envelope-paper text-primary me-2"></i>Dispatched Notification #@n.Id
+                                                    </h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="mb-3 p-3 bg-light rounded border">
+                                                        <div class="row g-2 small">
+                                                            <div class="col-4 text-muted">Recipient:</div>
+                                                            <div class="col-8 fw-bold">@n.Borrower.FullName (@n.Borrower.BorrowerCardNumber)</div>
+                                                            <div class="col-4 text-muted">Destination:</div>
+                                                            <div class="col-8 font-monospace">@(n.Channel == LibraTrack.Models.NotificationChannel.Email ? n.Borrower.Email : n.Borrower.Phone)</div>
+                                                            <div class="col-4 text-muted">Delivery Channel:</div>
+                                                            <div class="col-8 fw-semibold">@n.Channel</div>
+                                                            <div class="col-4 text-muted">Event Type:</div>
+                                                            <div class="col-8">@n.Type</div>
+                                                            <div class="col-4 text-muted">Dispatched At:</div>
+                                                            <div class="col-8">@n.CreatedAt.ToString("dddd, dd MMMM yyyy HH:mm:ss") UTC</div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label small fw-bold text-muted text-uppercase">Subject</label>
+                                                        <div class="p-2 border rounded bg-white fw-bold">@n.Subject</div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label small fw-bold text-muted text-uppercase">Message Body</label>
+                                                        <div class="p-3 border rounded bg-white text-muted" style="white-space: pre-wrap; font-size: 0.9rem;">@n.Message</div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-bell-slash fs-1 d-block mb-2 text-secondary"></i>
+                                <h5>No Notifications Found</h5>
+                                <p class="small text-muted mb-0">No automated notifications match your current filter criteria.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
