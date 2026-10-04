@@ -17,6 +17,11 @@ namespace LibraTrack.Data
         public DbSet<Borrower> Borrowers { get; set; } = null!;
         public DbSet<Loan> Loans { get; set; } = null!;
         public DbSet<UserAccount> Users { get; set; } = null!;
+        public DbSet<Branch> Branches { get; set; } = null!;
+        public DbSet<ItemTransfer> ItemTransfers { get; set; } = null!;
+        public DbSet<Notification> Notifications { get; set; } = null!;
+        public DbSet<Reservation> Reservations { get; set; } = null!;
+        public DbSet<ImportLog> ImportLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -95,6 +100,41 @@ namespace LibraTrack.Data
                 .WithMany(b => b.Loans)
                 .HasForeignKey(l => l.BorrowerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Notification Relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Borrower)
+                .WithMany()
+                .HasForeignKey(n => n.BorrowerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Loan)
+                .WithMany()
+                .HasForeignKey(n => n.LoanId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => new { n.LoanId, n.Type });
+
+            // Reservation Relationships
+            modelBuilder.Entity<Reservation>()
+                .HasOne(r => r.Item)
+                .WithMany()
+                .HasForeignKey(r => r.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Reservation>()
+                .HasOne(r => r.Borrower)
+                .WithMany()
+                .HasForeignKey(r => r.BorrowerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Reservation>()
+                .HasIndex(r => new { r.ItemId, r.Status });
+
+            modelBuilder.Entity<Reservation>()
+                .HasIndex(r => new { r.BorrowerId, r.ItemId, r.Status });
         }
     }
 }

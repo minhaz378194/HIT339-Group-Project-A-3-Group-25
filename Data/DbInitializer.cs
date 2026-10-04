@@ -1,12 +1,19 @@
+using Microsoft.EntityFrameworkCore;
 using LibraTrack.Models;
 
 namespace LibraTrack.Data
 {
     public static class DbInitializer
     {
-        public static void Initialize(LibraryDbContext context)
+        public static void Initialize(LibraryDbContext context, bool resetDatabase = false)
         {
-            // Ensure database is created
+            // If requested (e.g. in development mode), delete old database to rebuild schema with newly added tables
+            if (resetDatabase)
+            {
+                context.Database.EnsureDeleted();
+            }
+
+            // Ensure database and all tables are created
             context.Database.EnsureCreated();
 
             // Check if users already seeded
