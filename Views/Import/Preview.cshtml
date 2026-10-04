@@ -1,0 +1,216 @@
+@model LibraTrack.Models.ViewModels.ImportPreviewViewModel
+@{
+    ViewData["Title"] = "CSV Import Preview";
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="h3 fw-bold mb-1 text-primary">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i>CSV Import Preview & Validation
+            </h2>
+            <p class="text-muted mb-0">
+                File: <strong class="text-dark">@Model.FileName</strong> &bull; Inspect validated rows before committing to the database.
+            </p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle me-1"></i>Cancel Import
+            </a>
+            @if (Model.ValidCount > 0)
+            {
+                <form asp-action="Confirm" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-success shadow-sm px-4">
+                        <i class="bi bi-check2-circle me-1"></i>Confirm & Import Valid Rows (@Model.ValidCount)
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <!-- Summary Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 bg-light">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-uppercase fw-semibold">Total Rows in CSV</div>
+                        <div class="h3 fw-bold mb-0 text-dark">@Model.TotalRows</div>
+                    </div>
+                    <div class="badge bg-secondary p-3 rounded-circle fs-5">
+                        <i class="bi bi-list-ol"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 border-start border-4 border-success bg-light">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-success small text-uppercase fw-semibold">Valid & Ready to Import</div>
+                        <div class="h3 fw-bold mb-0 text-success">@Model.ValidCount</div>
+                    </div>
+                    <div class="badge bg-success p-3 rounded-circle fs-5">
+                        <i class="bi bi-check-lg"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-3 border-start border-4 border-danger bg-light">
+                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-danger small text-uppercase fw-semibold">Invalid / Will Be Skipped</div>
+                        <div class="h3 fw-bold mb-0 text-danger">@Model.InvalidCount</div>
+                    </div>
+                    <div class="badge bg-danger p-3 rounded-circle fs-5">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.InvalidCount > 0)
+    {
+        <div class="alert alert-warning border-0 shadow-sm rounded-3 p-3 mb-4 d-flex align-items-center">
+            <i class="bi bi-exclamation-circle fs-4 me-3 text-warning"></i>
+            <div>
+                <strong>Notice:</strong> @Model.InvalidCount row(s) contain validation errors (such as invalid library code formats, duplicate codes, or unknown branches).
+                Only the <strong>@Model.ValidCount valid row(s)</strong> will be imported into the catalog upon confirmation.
+            </div>
+        </div>
+    }
+
+    <!-- Preview Table -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 fw-bold text-dark">
+                <i class="bi bi-table me-2 text-primary"></i>Validation Results
+            </h5>
+            <div>
+                <span class="badge bg-success me-1">@Model.ValidCount Valid</span>
+                <span class="badge bg-danger">@Model.InvalidCount Invalid</span>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 60px;">#</th>
+                        <th scope="col" style="width: 100px;">Type</th>
+                        <th scope="col" style="width: 120px;">Library Code</th>
+                        <th scope="col">Title / Name</th>
+                        <th scope="col" style="width: 160px;">Branch</th>
+                        <th scope="col" style="width: 110px;" class="text-center">Status</th>
+                        <th scope="col">Reason / Validation Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr class="@(row.IsValid ? "" : "table-danger-subtle bg-danger-subtle")">
+                            <td class="text-muted fw-bold">@row.RowNumber</td>
+                            <td>
+                                @if (row.ItemType.Equals("Book", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-primary">Book</span>
+                                }
+                                else if (row.ItemType.Equals("Music", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-success">Music</span>
+                                }
+                                else if (row.ItemType.Equals("Toy", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-warning text-dark">Toy</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@row.ItemType</span>
+                                }
+                            </td>
+                            <td>
+                                <code class="fw-bold fs-6">@row.LibraryCode</code>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">@row.Name</div>
+                                @if (!string.IsNullOrWhiteSpace(row.Author))
+                                {
+                                    <small class="text-muted">Author: @row.Author</small>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(row.Artist))
+                                {
+                                    <small class="text-muted">Artist: @row.Artist</small>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(row.ToyType))
+                                {
+                                    <small class="text-muted">Type: @row.ToyType</small>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(row.ResolvedBranchName))
+                                {
+                                    <span class="fw-semibold">@row.ResolvedBranchName</span>
+                                    <span class="badge bg-light text-dark border">@row.BranchCode</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger fw-semibold">Unknown (@row.BranchCode)</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (row.IsValid)
+                                {
+                                    <span class="badge bg-success px-3 py-2">
+                                        <i class="bi bi-check-circle me-1"></i>Valid
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger px-3 py-2">
+                                        <i class="bi bi-x-circle me-1"></i>Invalid
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                @if (row.IsValid)
+                                {
+                                    <span class="text-success small">
+                                        <i class="bi bi-check2"></i> Passed format, duplicate, and branch checks.
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger small fw-semibold">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>@row.ErrorReason
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-light py-3 d-flex justify-content-between align-items-center">
+            <span class="text-muted small">
+                Showing all @Model.TotalRows rows from uploaded CSV.
+            </span>
+            <div class="d-flex gap-2">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Cancel & Back
+                </a>
+                @if (Model.ValidCount > 0)
+                {
+                    <form asp-action="Confirm" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-success px-4">
+                            <i class="bi bi-check2-circle me-1"></i>Confirm & Import Valid Rows (@Model.ValidCount)
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>
