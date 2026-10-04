@@ -1,0 +1,109 @@
+@model LibraTrack.Models.ViewModels.CreateReservationViewModel
+@{
+    ViewData["Title"] = "Place Patron Item Hold";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Reservations</a></li>
+                <li class="breadcrumb-item active">Place Hold</li>
+            </ol>
+        </nav>
+        <h1 class="page-title mb-1">
+            <i class="bi bi-bookmark-plus text-warning me-2"></i>Place Item Hold / Reservation
+        </h1>
+        <p class="text-muted small mb-0">
+            Enqueue a patron for a catalog item that is currently checked out or being repaired.
+        </p>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="lib-card shadow-sm p-4">
+                <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                    <i class="bi bi-info-circle-fill fs-4 me-3 text-info"></i>
+                    <div>
+                        <strong>Reservation Policy:</strong> Holds may only be placed on items with status 
+                        <span class="badge bg-danger">Borrowed</span> or <span class="badge bg-warning text-dark">Damaged</span>. 
+                        When the item is returned in good condition, the next patron in queue is automatically notified and given 3 days to collect it.
+                    </div>
+                </div>
+
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <!-- Step 1: Select Item -->
+                    <div class="mb-4">
+                        <label asp-for="ItemId" class="form-label fw-bold">
+                            <i class="bi bi-book me-1"></i>Select Unavailable Item to Reserve <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="ItemId" class="form-select form-select-lg" id="itemSelect" required>
+                            <option value="">-- Choose an item currently Borrowed or Damaged --</option>
+                            @foreach (var item in Model.EligibleItems)
+                            {
+                                <option value="@item.Id" 
+                                        data-status="@item.Status" 
+                                        data-branch="@(item.Branch?.Name ?? "Main")"
+                                        selected="@(Model.ItemId == item.Id ? "selected" : null)">
+                                    [@item.LibraryCode] @item.Name &mdash; Status: @item.Status (@(item.Branch?.Name ?? "Main"))
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="ItemId" class="text-danger small"></span>
+                        @if (!Model.EligibleItems.Any())
+                        {
+                            <div class="text-muted small mt-2">
+                                <i class="bi bi-exclamation-circle text-warning me-1"></i>
+                                No items are currently borrowed or damaged. All catalog items are available for direct borrowing!
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Step 2: Select Patron -->
+                    <div class="mb-4">
+                        <label asp-for="BorrowerId" class="form-label fw-bold">
+                            <i class="bi bi-person-badge me-1"></i>Select Requesting Patron <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="BorrowerId" class="form-select" id="borrowerSelect" required>
+                            <option value="">-- Choose a registered borrower --</option>
+                            @foreach (var borrower in Model.ActiveBorrowers)
+                            {
+                                <option value="@borrower.Id" selected="@(Model.BorrowerId == borrower.Id ? "selected" : null)">
+                                    @borrower.FullName (@borrower.BorrowerCardNumber) &mdash; @borrower.Email
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="BorrowerId" class="text-danger small"></span>
+                        <div class="form-text">
+                            Duplicate reservations for the same item by the same patron are blocked.
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Staff Notes -->
+                    <div class="mb-4">
+                        <label asp-for="Notes" class="form-label fw-bold">
+                            <i class="bi bi-chat-text me-1"></i>Staff Notes <span class="text-muted fw-normal small">(Optional)</span>
+                        </label>
+                        <textarea asp-for="Notes" class="form-control" rows="2" placeholder="e.g. Patron requested hold for assignment research..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Cancel & Back
+                        </a>
+                        <button type="submit" class="btn btn-lib-primary" @(!Model.EligibleItems.Any() ? "disabled" : "")>
+                            <i class="bi bi-bookmark-check me-1"></i>Confirm & Enqueue Hold
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

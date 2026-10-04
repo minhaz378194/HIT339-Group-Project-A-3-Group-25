@@ -1,0 +1,263 @@
+@model LibraTrack.Models.ViewModels.ReservationListViewModel
+@{
+    ViewData["Title"] = "Patron Reservation Queue";
+    var filter = Model.ActiveFilter?.ToLower() ?? "all";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item"><a asp-controller="Borrowers" asp-action="Index">Reception</a></li>
+                <li class="breadcrumb-item active">Reservations Queue</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h1 class="page-title mb-1">
+                    <i class="bi bi-bookmark-star text-warning me-2"></i>Patron Reservation Queue
+                </h1>
+                <p class="text-muted small mb-0">
+                    Manage item hold requests, monitor hold-shelf pickup deadlines, and organize waiting queues.
+                </p>
+            </div>
+            <div>
+                <a asp-action="Create" class="btn btn-lib-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Place Reservation
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">All Holds</span>
+                <span class="fs-4 fw-bold text-dark">@Model.TotalCount</span>
+                <small class="text-muted"><i class="bi bi-collection me-1"></i>Lifetime</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100 border-warning-subtle">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Waiting</span>
+                <span class="fs-4 fw-bold text-warning">@Model.WaitingCount</span>
+                <small class="text-muted"><i class="bi bi-hourglass-split me-1"></i>In queue</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100 border-success-subtle">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Ready</span>
+                <span class="fs-4 fw-bold text-success">@Model.ReadyCount</span>
+                <small class="text-muted"><i class="bi bi-box-seam text-success me-1"></i>Hold shelf</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Fulfilled</span>
+                <span class="fs-4 fw-bold text-primary">@Model.FulfilledCount</span>
+                <small class="text-muted"><i class="bi bi-check-circle me-1"></i>Checked out</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Cancelled</span>
+                <span class="fs-4 fw-bold text-muted">@Model.CancelledCount</span>
+                <small class="text-muted"><i class="bi bi-x-circle me-1"></i>By patron/staff</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
+            <div class="lib-card text-center p-3 h-100">
+                <span class="text-muted small text-uppercase fw-semibold d-block">Expired</span>
+                <span class="fs-4 fw-bold text-danger">@Model.ExpiredCount</span>
+                <small class="text-muted"><i class="bi bi-clock-history me-1"></i>Uncollected</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar & Search Toolbar -->
+    <div class="row g-3 mb-4 align-items-center">
+        <div class="col-lg-7">
+            <div class="btn-group flex-wrap" role="group">
+                <a asp-action="Index" asp-route-filter="all" class="btn btn-sm @(filter == "all" ? "btn-dark" : "btn-outline-dark")">
+                    All (@Model.TotalCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="waiting" class="btn btn-sm @(filter == "waiting" ? "btn-warning text-dark" : "btn-outline-warning")">
+                    <i class="bi bi-hourglass-split me-1"></i>Waiting Queue (@Model.WaitingCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="ready" class="btn btn-sm @(filter == "ready" ? "btn-success" : "btn-outline-success")">
+                    <i class="bi bi-box2-heart me-1"></i>Ready for Pickup (@Model.ReadyCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="fulfilled" class="btn btn-sm @(filter == "fulfilled" ? "btn-primary" : "btn-outline-primary")">
+                    Fulfilled (@Model.FulfilledCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="cancelled" class="btn btn-sm @(filter == "cancelled" ? "btn-secondary" : "btn-outline-secondary")">
+                    Cancelled (@Model.CancelledCount)
+                </a>
+                <a asp-action="Index" asp-route-filter="expired" class="btn btn-sm @(filter == "expired" ? "btn-danger" : "btn-outline-danger")">
+                    Expired (@Model.ExpiredCount)
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <form method="get" asp-action="Index" class="d-flex gap-2">
+                <input type="hidden" name="filter" value="@filter" />
+                <input type="text" name="search" value="@Model.SearchTerm" class="form-control form-control-sm" placeholder="Search item, code, or patron..." />
+                <button type="submit" class="btn btn-sm btn-lib-primary">Search</button>
+                @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                {
+                    <a asp-action="Index" asp-route-filter="@filter" class="btn btn-sm btn-outline-secondary">Clear</a>
+                }
+            </form>
+        </div>
+    </div>
+
+    <!-- Reservations Table -->
+    <div class="lib-card p-0 overflow-hidden shadow-sm">
+        <div class="table-responsive">
+            <table class="lib-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 70px;">ID</th>
+                        <th>Item Details</th>
+                        <th>Patron Borrower</th>
+                        <th style="width: 140px;">Queue Position</th>
+                        <th style="width: 130px;">Status</th>
+                        <th>Timeline</th>
+                        <th style="width: 130px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Reservations.Any())
+                    {
+                        foreach (var r in Model.Reservations)
+                        {
+                            <tr class="@(r.Status == LibraTrack.Models.ReservationStatus.Ready ? "table-success" : "")">
+                                <td>
+                                    <span class="font-monospace text-muted small">#@r.Id</span>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">@r.Item.Name</div>
+                                    <div class="small text-muted font-monospace">
+                                        <code>@r.Item.LibraryCode</code>
+                                        &bull;
+                                        <span>Status: @r.Item.Status</span>
+                                        @if (r.Item.Branch != null)
+                                        {
+                                            <span>&bull; @r.Item.Branch.Name</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark">@r.Borrower.FullName</div>
+                                    <div class="small text-muted font-monospace">
+                                        <i class="bi bi-person-badge me-1"></i>@r.Borrower.BorrowerCardNumber
+                                        &bull; @r.Borrower.Email
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (r.Status == LibraTrack.Models.ReservationStatus.Waiting)
+                                    {
+                                        <span class="badge bg-warning text-dark fs-6 px-2 py-1">
+                                            <i class="bi bi-people me-1"></i>Position #@r.QueuePosition
+                                        </span>
+                                    }
+                                    else if (r.Status == LibraTrack.Models.ReservationStatus.Ready)
+                                    {
+                                        <span class="badge bg-success text-white fs-6 px-2 py-1">
+                                            <i class="bi bi-box-seam me-1"></i>Ready on Shelf
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">&mdash;</span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (r.Status)
+                                    {
+                                        case LibraTrack.Models.ReservationStatus.Waiting:
+                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                                <i class="bi bi-hourglass-split me-1"></i>Waiting
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.ReservationStatus.Ready:
+                                            <span class="badge bg-success text-white">
+                                                <i class="bi bi-bell-fill me-1"></i>Ready for Pickup
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.ReservationStatus.Fulfilled:
+                                            <span class="badge bg-primary text-white">
+                                                <i class="bi bi-check-circle me-1"></i>Fulfilled
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.ReservationStatus.Cancelled:
+                                            <span class="badge bg-secondary text-white">
+                                                <i class="bi bi-x-circle me-1"></i>Cancelled
+                                            </span>
+                                            break;
+                                        case LibraTrack.Models.ReservationStatus.Expired:
+                                            <span class="badge bg-danger text-white">
+                                                <i class="bi bi-clock-history me-1"></i>Expired
+                                            </span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    <div class="small text-muted">
+                                        <i class="bi bi-calendar-plus me-1"></i>Placed: @r.CreatedAt.ToString("dd MMM yyyy")
+                                    </div>
+                                    @if (r.Status == LibraTrack.Models.ReservationStatus.Ready)
+                                    {
+                                        <div class="small text-danger fw-semibold">
+                                            <i class="bi bi-clock me-1"></i>Expires: @(r.ExpiresAt?.ToString("dd MMM yyyy HH:mm") ?? "N/A")
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        @if (r.Status == LibraTrack.Models.ReservationStatus.Ready)
+                                        {
+                                            <!-- Requirement 4 & 5: Issue to the reserved patron -->
+                                            <a asp-controller="Loans" asp-action="Issue" 
+                                               asp-route-itemId="@r.ItemId" 
+                                               asp-route-borrowerId="@r.BorrowerId" 
+                                               class="btn btn-sm btn-success" title="Issue held item to reserved patron">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i>Issue
+                                            </a>
+                                        }
+
+                                        @if (r.Status == LibraTrack.Models.ReservationStatus.Waiting || r.Status == LibraTrack.Models.ReservationStatus.Ready)
+                                        {
+                                            <form asp-action="Cancel" asp-route-id="@r.Id" method="post" class="d-inline"
+                                                  onsubmit="return confirm('Are you sure you want to cancel this reservation for @r.Borrower.FullName?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Reservation">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-bookmark-x fs-1 d-block mb-2 text-secondary"></i>
+                                <h5>No Reservations Found</h5>
+                                <p class="small text-muted mb-3">No patron hold records match your selected filter.</p>
+                                <a asp-action="Create" class="btn btn-sm btn-lib-primary">Place New Reservation</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
