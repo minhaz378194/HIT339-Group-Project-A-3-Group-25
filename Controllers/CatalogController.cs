@@ -167,6 +167,16 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            // Requirement 6: Show queue length on the item detail page
+            ViewBag.WaitingQueueCount = await _context.Reservations
+                .CountAsync(r => r.ItemId == id && r.Status == ReservationStatus.Waiting);
+
+            ViewBag.ActiveReadyHold = await _context.Reservations
+                .Include(r => r.Borrower)
+                .FirstOrDefaultAsync(r => r.ItemId == id && 
+                                          r.Status == ReservationStatus.Ready && 
+                                          (r.ExpiresAt == null || r.ExpiresAt > DateTime.UtcNow));
+
             return View(item);
         }
     }
