@@ -135,8 +135,24 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// Enable CORS for GET only public API
+app.UseCors("PublicApiCorsPolicy");
+
+// Enable Rate Limiting
+app.UseRateLimiter();
+
+app.UseSession();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Enable Swagger / OpenAPI
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "LibraTrack Public Catalog API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.MapControllerRoute(
     name: "default",
