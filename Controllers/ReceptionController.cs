@@ -407,13 +407,44 @@ namespace LibraTrack.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Dispatch fine notification if overdue fine was created
             if (fine > 0)
             {
-                TempData["Success"] = $"Item returned successfully. Fine charged: ${fine:F2}.";
+                try
+                {
+                    await _notificationService.SendFineIssuedNotificationAsync(loan, fine);
+                }
+                catch
+                {
+                    // Non-blocking notification dispatch
+                }
+            }
+
+            // Promote waiting reservation if returned in good condition
+            string reservationMsg = "";
+            if (model.Condition == ReturnCondition.Good)
+            {
+                try
+                {
+                    var promoted = await _reservationService.PromoteNextWaitingReservationAsync(loan.ItemId);
+                    if (promoted != null)
+                    {
+                        reservationMsg = $" Hold active: placed on Ready hold shelf for {promoted.Borrower?.FullName} (Expires {promoted.ExpiresAt:dd MMM yyyy}).";
+                    }
+                }
+                catch
+                {
+                    // Non-blocking reservation advancement
+                }
+            }
+
+            if (fine > 0)
+            {
+                TempData["Success"] = $"Item returned successfully. Fine charged: ${fine:F2}.{reservationMsg}";
             }
             else
             {
-                TempData["Success"] = "Item returned on time. No fine charged.";
+                TempData["Success"] = $"Item returned on time. No fine charged.{reservationMsg}";
             }
 
             return RedirectToAction(nameof(Index));
