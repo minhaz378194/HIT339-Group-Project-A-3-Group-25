@@ -163,6 +163,39 @@ namespace LibraTrack.Data
             context.SaveChanges();
 
             // ==========================================
+            // 2.5 SEED BRANCHES
+            // ==========================================
+            var branches = new List<Branch>
+            {
+                new Branch
+                {
+                    Name = "Darwin Central Library",
+                    BranchCode = "CEN",
+                    Address = "Civic Centre, Harry Chan Ave, Darwin NT 0800",
+                    Phone = "+61 8 8930 0300",
+                    IsActive = true
+                },
+                new Branch
+                {
+                    Name = "Casuarina Library",
+                    BranchCode = "CAS",
+                    Address = "17 Bradshaw Terrace, Casuarina NT 0810",
+                    Phone = "+61 8 8930 0200",
+                    IsActive = true
+                },
+                new Branch
+                {
+                    Name = "Palmerston City Library",
+                    BranchCode = "PAL",
+                    Address = "The Boulevard, Palmerston City NT 0830",
+                    Phone = "+61 8 8935 9999",
+                    IsActive = true
+                }
+            };
+            context.Branches.AddRange(branches);
+            context.SaveChanges();
+
+            // ==========================================
             // 3. SEED BOOKS
             // ==========================================
             var books = new List<Book>
