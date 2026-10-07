@@ -44,6 +44,13 @@ namespace LibraTrack.Models
         [DataType(DataType.Date)]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        [Required(ErrorMessage = "Branch assignment is required.")]
+        [Display(Name = "Branch Location")]
+        public int BranchId { get; set; }
+
+        [ForeignKey("BranchId")]
+        public virtual Branch Branch { get; set; } = null!;
+
         /// <summary>
         /// Discriminator property to identify the specific item type.
         /// </summary>

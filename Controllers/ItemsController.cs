@@ -36,7 +36,7 @@ namespace LibraTrack.Controllers
             var musicList = await musicQuery.OrderBy(m => m.LibraryCode).ToListAsync();
             var toys = await toysQuery.OrderBy(t => t.LibraryCode).ToListAsync();
 
-            var allItems = await _context.Items.ToListAsync();
+            var allItems = await _context.Items.Include(i => i.Branch).ToListAsync();
 
             var viewModel = new AdminDashboardViewModel
             {
@@ -62,15 +62,21 @@ namespace LibraTrack.Controllers
         // BOOK CRUD
         // ==========================================
         [HttpGet]
-        public IActionResult CreateBook()
+        public async Task<IActionResult> CreateBook()
         {
-            return View(new Book { Status = ItemStatus.Available, ReplacementCost = 25.00m });
+            await PopulateBranchesViewBagAsync();
+            return View(new Book { Status = ItemStatus.Available, ReplacementCost = 25.00m, BranchId = await GetDefaultBranchIdAsync() });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateBook(Book book)
         {
+            if (book.BranchId <= 0)
+            {
+                book.BranchId = await GetDefaultBranchIdAsync();
+            }
+
             if (await _context.Items.AnyAsync(i => i.LibraryCode == book.LibraryCode))
             {
                 ModelState.AddModelError("LibraryCode", $"Library code '{book.LibraryCode}' is already in use by another item.");
@@ -85,6 +91,7 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(Index), new { tab = "books" });
             }
 
+            await PopulateBranchesViewBagAsync(book.BranchId);
             return View(book);
         }
 
@@ -97,6 +104,7 @@ namespace LibraTrack.Controllers
                 TempData["Error"] = "Book not found.";
                 return RedirectToAction(nameof(Index), new { tab = "books" });
             }
+            await PopulateBranchesViewBagAsync(book.BranchId);
             return View(book);
         }
 
@@ -105,6 +113,11 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> EditBook(int id, Book book)
         {
             if (id != book.Id) return NotFound();
+
+            if (book.BranchId <= 0)
+            {
+                book.BranchId = await GetDefaultBranchIdAsync();
+            }
 
             if (await _context.Items.AnyAsync(i => i.LibraryCode == book.LibraryCode && i.Id != id))
             {
@@ -126,6 +139,7 @@ namespace LibraTrack.Controllers
                     throw;
                 }
             }
+            await PopulateBranchesViewBagAsync(book.BranchId);
             return View(book);
         }
 
@@ -278,6 +292,7 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var item = await _context.Items
+                .Include(i => i.Branch)
                 .Include(i => i.Loans.OrderByDescending(l => l.BorrowDate))
                 .ThenInclude(l => l.Borrower)
                 .FirstOrDefaultAsync(i => i.Id == id);
@@ -295,6 +310,7 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var item = await _context.Items
+                .Include(i => i.Branch)
                 .Include(i => i.Loans)
                 .FirstOrDefaultAsync(i => i.Id == id);
 

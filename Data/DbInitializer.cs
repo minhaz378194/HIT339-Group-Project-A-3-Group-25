@@ -1,12 +1,19 @@
+using Microsoft.EntityFrameworkCore;
 using LibraTrack.Models;
 
 namespace LibraTrack.Data
 {
     public static class DbInitializer
     {
-        public static void Initialize(LibraryDbContext context)
+        public static void Initialize(LibraryDbContext context, bool resetDatabase = false)
         {
-            // Ensure database is created
+            // If requested (e.g. in development mode), delete old database to rebuild schema with newly added tables
+            if (resetDatabase)
+            {
+                context.Database.EnsureDeleted();
+            }
+
+            // Ensure database and all tables are created
             context.Database.EnsureCreated();
 
             // Check if users already seeded
@@ -145,7 +152,47 @@ namespace LibraTrack.Data
                     IsActive = true
                 }
             };
+            foreach (var b in borrowers)
+            {
+                // Default 4-digit PIN for self-service kiosk: "1234"
+                b.PinHash = Borrower.HashPin("1234");
+                b.FailedPinAttempts = 0;
+                b.IsLockedOut = false;
+            }
             context.Borrowers.AddRange(borrowers);
+            context.SaveChanges();
+
+            // ==========================================
+            // 2.5 SEED BRANCHES
+            // ==========================================
+            var branches = new List<Branch>
+            {
+                new Branch
+                {
+                    Name = "Darwin Central Library",
+                    BranchCode = "CEN",
+                    Address = "Civic Centre, Harry Chan Ave, Darwin NT 0800",
+                    Phone = "+61 8 8930 0300",
+                    IsActive = true
+                },
+                new Branch
+                {
+                    Name = "Casuarina Library",
+                    BranchCode = "CAS",
+                    Address = "17 Bradshaw Terrace, Casuarina NT 0810",
+                    Phone = "+61 8 8930 0200",
+                    IsActive = true
+                },
+                new Branch
+                {
+                    Name = "Palmerston City Library",
+                    BranchCode = "PAL",
+                    Address = "The Boulevard, Palmerston City NT 0830",
+                    Phone = "+61 8 8935 9999",
+                    IsActive = true
+                }
+            };
+            context.Branches.AddRange(branches);
             context.SaveChanges();
 
             // ==========================================
@@ -266,6 +313,10 @@ namespace LibraTrack.Data
                     CreatedAt = DateTime.UtcNow.AddMonths(-3)
                 }
             };
+            for (int i = 0; i < books.Count; i++)
+            {
+                books[i].BranchId = branches[i % branches.Count].Id;
+            }
             context.Books.AddRange(books);
             context.SaveChanges();
 
@@ -387,6 +438,10 @@ namespace LibraTrack.Data
                     CreatedAt = DateTime.UtcNow.AddMonths(-2)
                 }
             };
+            for (int i = 0; i < musicList.Count; i++)
+            {
+                musicList[i].BranchId = branches[(i + 1) % branches.Count].Id;
+            }
             context.MusicAlbums.AddRange(musicList);
             context.SaveChanges();
 
@@ -508,6 +563,10 @@ namespace LibraTrack.Data
                     CreatedAt = DateTime.UtcNow.AddMonths(-2)
                 }
             };
+            for (int i = 0; i < toys.Count; i++)
+            {
+                toys[i].BranchId = branches[(i + 2) % branches.Count].Id;
+            }
             context.Toys.AddRange(toys);
             context.SaveChanges();
 
@@ -724,6 +783,192 @@ namespace LibraTrack.Data
 
             context.Loans.AddRange(loans);
             context.SaveChanges();
+
+            // ==========================================
+            // 7. SEED ITEM TRANSFERS
+            // ==========================================
+            var allItems = context.Items.ToList();
+            var adminUser = context.Users.FirstOrDefault(u => u.Role == UserRole.Admin);
+
+            var transfers = new List<ItemTransfer>
+            {
+                new ItemTransfer
+                {
+                    ItemId = allItems[0].Id,
+                    FromBranchId = allItems[0].BranchId,
+                    ToBranchId = branches.First(b => b.Id != allItems[0].BranchId).Id,
+                    RequestedByUserId = adminUser?.Id,
+                    RequestedAt = DateTime.UtcNow.AddDays(-2),
+                    Status = TransferStatus.InTransit,
+                    Notes = "Inter-branch transfer to fulfill patron hold request."
+                },
+                new ItemTransfer
+                {
+                    ItemId = allItems[3].Id,
+                    FromBranchId = branches[1].Id,
+                    ToBranchId = branches[0].Id,
+                    RequestedByUserId = adminUser?.Id,
+                    RequestedAt = DateTime.UtcNow.AddDays(-6),
+                    Status = TransferStatus.Received,
+                    CompletedAt = DateTime.UtcNow.AddDays(-3),
+                    Notes = "Routine seasonal collection rotation."
+                }
+            };
+            context.ItemTransfers.AddRange(transfers);
+            context.SaveChanges();
+
+            // ==========================================
+            // 8. SEED NOTIFICATIONS (Simulated Patron Alerts)
+            // ==========================================
+            var seededLoans = context.Loans.Include(l => l.Item).Include(l => l.Borrower).ToList();
+            var notifications = new List<Notification>
+            {
+                new Notification
+                {
+                    BorrowerId = allBorrowers[0].Id,
+                    LoanId = seededLoans[0].Id,
+                    Channel = NotificationChannel.Email,
+                    Type = NotificationType.Borrowed,
+                    Subject = $"Item Issued: {seededLoans[0].Item.Name} [{seededLoans[0].Item.LibraryCode}]",
+                    Message = $"Hello {allBorrowers[0].FullName}, you have checked out '{seededLoans[0].Item.Name}' ({seededLoans[0].Item.LibraryCode}). Due date: {seededLoans[0].DueDate:dddd, dd MMMM yyyy}.",
+                    Status = NotificationStatus.Sent,
+                    CreatedAt = DateTime.UtcNow.AddDays(-10)
+                },
+                new Notification
+                {
+                    BorrowerId = allBorrowers[1].Id,
+                    LoanId = seededLoans[1].Id,
+                    Channel = NotificationChannel.Email,
+                    Type = NotificationType.FineIssued,
+                    Subject = $"Fine Assessed: ${seededLoans[1].FineAmount:F2} for '{seededLoans[1].Item.Name}'",
+                    Message = $"Hello {allBorrowers[1].FullName}, a late fine of ${seededLoans[1].FineAmount:F2} was assessed for your returned item '{seededLoans[1].Item.Name}'. Status: PAID.",
+                    Status = NotificationStatus.Sent,
+                    CreatedAt = DateTime.UtcNow.AddDays(-3)
+                },
+                new Notification
+                {
+                    BorrowerId = allBorrowers[2].Id,
+                    LoanId = seededLoans[2].Id,
+                    Channel = NotificationChannel.SMS,
+                    Type = NotificationType.DueSoon,
+                    Subject = $"Reminder: '{seededLoans[2].Item.Name}' is due on {seededLoans[2].DueDate:dd MMM yyyy}",
+                    Message = $"Hello {allBorrowers[2].FullName}, reminder that '{seededLoans[2].Item.Name}' is due in 2 days on {seededLoans[2].DueDate:dddd, dd MMM yyyy}. Please return or renew.",
+                    Status = NotificationStatus.Sent,
+                    CreatedAt = DateTime.UtcNow.AddHours(-18)
+                },
+                new Notification
+                {
+                    BorrowerId = allBorrowers[3].Id,
+                    LoanId = seededLoans[3].Id,
+                    Channel = NotificationChannel.Email,
+                    Type = NotificationType.Overdue,
+                    Subject = $"OVERDUE ALERT: '{seededLoans[3].Item.Name}' was due on {seededLoans[3].DueDate:dd MMM yyyy}",
+                    Message = $"URGENT: Hello {allBorrowers[3].FullName}, your loan for '{seededLoans[3].Item.Name}' is now overdue. Daily late fines of $1.00/day are being accrued. Please return this item immediately.",
+                    Status = NotificationStatus.Sent,
+                    CreatedAt = DateTime.UtcNow.AddDays(-1)
+                },
+                new Notification
+                {
+                    BorrowerId = allBorrowers[4].Id,
+                    LoanId = null,
+                    Channel = NotificationChannel.SMS,
+                    Type = NotificationType.ReservationReady,
+                    Subject = "Hold Available: 'To Kill a Mockingbird' is ready for pickup",
+                    Message = $"Good news {allBorrowers[4].FullName}! Your requested book is waiting for pickup at Darwin Central Library hold shelf. Available for 3 days.",
+                    Status = NotificationStatus.Sent,
+                    CreatedAt = DateTime.UtcNow.AddHours(-4)
+                }
+            };
+            context.Notifications.AddRange(notifications);
+            context.SaveChanges();
+
+            // ==========================================
+            // 9. SEED RESERVATIONS (Queue & Hold Shelf)
+            // ==========================================
+            var reservations = new List<Reservation>
+            {
+                // Waiting queue on borrowed book 'Atomic Habits' (Position #1)
+                new Reservation
+                {
+                    ItemId = allBooks[1].Id,
+                    BorrowerId = allBorrowers[4].Id,
+                    QueuePosition = 1,
+                    Status = ReservationStatus.Waiting,
+                    CreatedAt = DateTime.UtcNow.AddDays(-2)
+                },
+                // Waiting queue on borrowed book 'Atomic Habits' (Position #2)
+                new Reservation
+                {
+                    ItemId = allBooks[1].Id,
+                    BorrowerId = allBorrowers[5].Id,
+                    QueuePosition = 2,
+                    Status = ReservationStatus.Waiting,
+                    CreatedAt = DateTime.UtcNow.AddDays(-1)
+                },
+                // Waiting queue on damaged book 'Pride and Prejudice'
+                new Reservation
+                {
+                    ItemId = allBooks[6].Id,
+                    BorrowerId = allBorrowers[7].Id,
+                    QueuePosition = 1,
+                    Status = ReservationStatus.Waiting,
+                    CreatedAt = DateTime.UtcNow.AddDays(-3)
+                },
+                // Waiting queue on borrowed toy 'Catan'
+                new Reservation
+                {
+                    ItemId = allToys[1].Id,
+                    BorrowerId = allBorrowers[6].Id,
+                    QueuePosition = 1,
+                    Status = ReservationStatus.Waiting,
+                    CreatedAt = DateTime.UtcNow.AddDays(-1)
+                },
+                // Ready hold on 'Random Access Memories'
+                new Reservation
+                {
+                    ItemId = allMusic[2].Id,
+                    BorrowerId = allBorrowers[3].Id,
+                    QueuePosition = 0,
+                    Status = ReservationStatus.Ready,
+                    CreatedAt = DateTime.UtcNow.AddDays(-1),
+                    ReadyAt = DateTime.UtcNow.AddDays(-1),
+                    ExpiresAt = DateTime.UtcNow.AddDays(2)
+                },
+                // Past Fulfilled hold on 'The Midnight Library'
+                new Reservation
+                {
+                    ItemId = allBooks[0].Id,
+                    BorrowerId = allBorrowers[2].Id,
+                    QueuePosition = 0,
+                    Status = ReservationStatus.Fulfilled,
+                    CreatedAt = DateTime.UtcNow.AddDays(-65),
+                    ReadyAt = DateTime.UtcNow.AddDays(-61),
+                    ExpiresAt = DateTime.UtcNow.AddDays(-58)
+                }
+            };
+            context.Reservations.AddRange(reservations);
+            context.SaveChanges();
+
+            // ==========================================
+            // 9. SEED IMPORT LOGS
+            // ==========================================
+            if (!context.ImportLogs.Any())
+            {
+                var initialImportLog = new ImportLog
+                {
+                    UserId = users[0].Id,
+                    Username = users[0].Username,
+                    ImportedAt = DateTime.UtcNow.AddDays(-10),
+                    Source = "CSV Upload",
+                    TotalRows = 21,
+                    ImportedCount = 21,
+                    SkippedCount = 0,
+                    ErrorCount = 0,
+                    Notes = "Initial batch catalog migration from legacy system across Darwin Central, Casuarina, and Palmerston branches."
+                };
+                context.ImportLogs.Add(initialImportLog);
+                context.SaveChanges();
+            }
         }
     }
 }

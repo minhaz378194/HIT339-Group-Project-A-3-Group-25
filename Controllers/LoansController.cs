@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using LibraTrack.Data;
 using LibraTrack.Models;
 using LibraTrack.Models.ViewModels;
+using LibraTrack.Services;
 
 namespace LibraTrack.Controllers
 {
@@ -249,6 +250,38 @@ namespace LibraTrack.Controllers
 
                 await _context.SaveChangesAsync();
 
+                // Call notification service when a return creates a fine (Requirement 3)
+                if (loan.FineAmount > 0)
+                {
+                    try
+                    {
+                        await _notificationService.SendFineIssuedNotificationAsync(loan, loan.FineAmount);
+                    }
+                    catch
+                    {
+                        // Fail gracefully so user return flow is never blocked
+                    }
+                }
+
+                // Requirement 3: When an item is returned in good condition, find first Waiting reservation,
+                // set to Ready, set ExpiresAt to 3 days later, and send ReservationReady notification
+                string reservationMsg = "";
+                if (model.Condition == ReturnCondition.Good)
+                {
+                    try
+                    {
+                        var promoted = await _reservationService.PromoteNextWaitingReservationAsync(loan.ItemId);
+                        if (promoted != null)
+                        {
+                            reservationMsg = $" Hold active: placed on Ready hold shelf for {promoted.Borrower?.FullName} (Expires {promoted.ExpiresAt:dd MMM yyyy}).";
+                        }
+                    }
+                    catch
+                    {
+                        // Fail gracefully
+                    }
+                }
+
                 var fineMsg = model.FineAmount > 0 
                     ? (model.MarkFineAsPaid ? $" (Late fine of ${model.FineAmount:F2} paid)." : $" (Late fine of ${model.FineAmount:F2} recorded as UNPAID).") 
                     : "";
@@ -256,7 +289,7 @@ namespace LibraTrack.Controllers
                     ? $" Item status updated to {model.Condition}." 
                     : "";
 
-                TempData["Success"] = $"'{loan.Item.Name}' successfully returned by {loan.Borrower.FullName}.{fineMsg}{condMsg}";
+                TempData["Success"] = $"'{loan.Item.Name}' successfully returned by {loan.Borrower.FullName}.{fineMsg}{condMsg}{reservationMsg}";
                 return RedirectToAction(nameof(Index), new { filter = "returned" });
             }
 

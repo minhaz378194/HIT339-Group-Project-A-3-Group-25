@@ -18,9 +18,9 @@ namespace LibraTrack.Controllers
         }
 
         // GET: /Catalog or /
-        public async Task<IActionResult> Index(string? q, string? type, string? status, string? sort = null, bool available = false, string? genre = null)
+        public async Task<IActionResult> Index(string? q, string? type, string? status, string? sort = null, bool available = false, string? genre = null, int? branchId = null)
         {
-            var allItemsQuery = _context.Items.AsQueryable();
+            var allItemsQuery = _context.Items.Include(i => i.Branch).AsQueryable();
 
             // Compute global category counts
             var totalBooks = await _context.Books.CountAsync();
@@ -98,6 +98,12 @@ namespace LibraTrack.Controllers
                 query = query.Where(i => i is Book && ((Book)i).Genre.ToLower() == genreTerm);
             }
 
+            // Branch filter
+            if (branchId.HasValue && branchId.Value > 0)
+            {
+                query = query.Where(i => i.BranchId == branchId.Value);
+            }
+
             // Sorting
             query = sort switch
             {
@@ -116,6 +122,11 @@ namespace LibraTrack.Controllers
                 .OrderBy(g => g)
                 .ToListAsync();
 
+            var branches = await _context.Branches
+                .Where(b => b.IsActive)
+                .OrderBy(b => b.Name)
+                .ToListAsync();
+
             var viewModel = new CatalogSearchViewModel
             {
                 SearchQuery = q,
@@ -124,6 +135,8 @@ namespace LibraTrack.Controllers
                 SortBy = sort,
                 AvailableOnly = available || (status == "Available"),
                 SelectedGenre = genre,
+                SelectedBranchId = branchId,
+                Branches = branches,
                 Results = results,
                 TotalResultsCount = results.Count,
                 BooksCount = totalBooks,
@@ -143,6 +156,7 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var item = await _context.Items
+                .Include(i => i.Branch)
                 .Include(i => i.Loans.OrderByDescending(l => l.BorrowDate))
                 .ThenInclude(l => l.Borrower)
                 .FirstOrDefaultAsync(m => m.Id == id);
@@ -152,6 +166,16 @@ namespace LibraTrack.Controllers
                 TempData["Error"] = "Requested item was not found.";
                 return RedirectToAction(nameof(Index));
             }
+
+            // Requirement 6: Show queue length on the item detail page
+            ViewBag.WaitingQueueCount = await _context.Reservations
+                .CountAsync(r => r.ItemId == id && r.Status == ReservationStatus.Waiting);
+
+            ViewBag.ActiveReadyHold = await _context.Reservations
+                .Include(r => r.Borrower)
+                .FirstOrDefaultAsync(r => r.ItemId == id && 
+                                          r.Status == ReservationStatus.Ready && 
+                                          (r.ExpiresAt == null || r.ExpiresAt > DateTime.UtcNow));
 
             return View(item);
         }

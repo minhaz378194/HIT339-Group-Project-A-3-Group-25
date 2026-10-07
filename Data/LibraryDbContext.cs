@@ -17,6 +17,11 @@ namespace LibraTrack.Data
         public DbSet<Borrower> Borrowers { get; set; } = null!;
         public DbSet<Loan> Loans { get; set; } = null!;
         public DbSet<UserAccount> Users { get; set; } = null!;
+        public DbSet<Branch> Branches { get; set; } = null!;
+        public DbSet<ItemTransfer> ItemTransfers { get; set; } = null!;
+        public DbSet<Notification> Notifications { get; set; } = null!;
+        public DbSet<Reservation> Reservations { get; set; } = null!;
+        public DbSet<ImportLog> ImportLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -34,6 +39,43 @@ namespace LibraTrack.Data
             modelBuilder.Entity<Item>()
                 .HasIndex(i => i.LibraryCode)
                 .IsUnique();
+
+            // Branch Unique constraint on BranchCode
+            modelBuilder.Entity<Branch>()
+                .HasIndex(b => b.BranchCode)
+                .IsUnique();
+
+            // Item - Branch Relationship
+            modelBuilder.Entity<Item>()
+                .HasOne(i => i.Branch)
+                .WithMany(b => b.Items)
+                .HasForeignKey(i => i.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ItemTransfer Relationships
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.Item)
+                .WithMany()
+                .HasForeignKey(t => t.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.FromBranch)
+                .WithMany()
+                .HasForeignKey(t => t.FromBranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.ToBranch)
+                .WithMany()
+                .HasForeignKey(t => t.ToBranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ItemTransfer>()
+                .HasOne(t => t.RequestedByUser)
+                .WithMany()
+                .HasForeignKey(t => t.RequestedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Unique constraint on BorrowerCardNumber
             modelBuilder.Entity<Borrower>()
@@ -58,6 +100,41 @@ namespace LibraTrack.Data
                 .WithMany(b => b.Loans)
                 .HasForeignKey(l => l.BorrowerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Notification Relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Borrower)
+                .WithMany()
+                .HasForeignKey(n => n.BorrowerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Loan)
+                .WithMany()
+                .HasForeignKey(n => n.LoanId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => new { n.LoanId, n.Type });
+
+            // Reservation Relationships
+            modelBuilder.Entity<Reservation>()
+                .HasOne(r => r.Item)
+                .WithMany()
+                .HasForeignKey(r => r.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Reservation>()
+                .HasOne(r => r.Borrower)
+                .WithMany()
+                .HasForeignKey(r => r.BorrowerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Reservation>()
+                .HasIndex(r => new { r.ItemId, r.Status });
+
+            modelBuilder.Entity<Reservation>()
+                .HasIndex(r => new { r.BorrowerId, r.ItemId, r.Status });
         }
     }
 }
