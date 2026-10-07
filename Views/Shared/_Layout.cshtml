@@ -159,18 +159,19 @@
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Staff";
-                            var fullName = User.FindFirst("FullName")?.Value ?? User.Identity.Name;
+                            var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Staff";
+                            var shortName = !string.IsNullOrEmpty(fullName) && fullName.Contains('(') ? fullName.Substring(0, fullName.IndexOf('(')).Trim() : (fullName ?? "Staff");
 
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center py-1 px-3" 
                                         type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false" 
                                         style="border-color: var(--caramel); background: rgba(255,255,255,0.08);">
-                                    <i class="bi bi-person-circle me-2 fs-6"></i>
-                                    <span class="d-none d-md-inline me-2">@fullName</span>
-                                    <span class="badge rounded-pill ms-2" style="background:var(--caramel);font-size:0.75rem;">@role</span>
+                                    <i class="bi bi-person-circle me-1 fs-6"></i>
+                                    <span class="d-none d-md-inline me-1 text-truncate" style="max-width: 140px;" title="@fullName">@shortName</span>
+                                    <span class="badge rounded-pill ms-1" style="background:var(--caramel);font-size:0.75rem;">@role</span>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="userMenuDropdown" style="background:var(--white); border-color:var(--border);">
-                                    <li class="dropdown-header text-muted small">Signed in as <strong>@User.Identity.Name</strong></li>
+                                    <li class="dropdown-header text-muted small">Signed in as <strong>@(User.Identity?.Name ?? "Staff")</strong></li>
                                     <li><hr class="dropdown-divider"></li>
                                     @if (User.IsInRole("Admin"))
                                     {
