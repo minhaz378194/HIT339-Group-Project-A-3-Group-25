@@ -1,0 +1,197 @@
+@{
+    ViewData["Title"] = "REST API Documentation";
+    var apiKey = ViewBag.ApiKey as string ?? "libra-track-secret-api-key-2026";
+}
+
+<div class="page-header">
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Catalog" asp-action="Index"><i class="bi bi-house"></i></a></li>
+                <li class="breadcrumb-item active">Developers & API</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">v1.0.0</span>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">GET Only &bull; Read-Only</span>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1">Rate Limited: 60 req/min</span>
+                </div>
+                <h1 class="page-title mb-1">
+                    <i class="bi bi-code-slash text-warning me-2"></i>Public Catalog REST API
+                </h1>
+                <p class="text-muted small mb-0">
+                    Integrate live library collection data, branch inventory, and system metrics into external applications.
+                </p>
+            </div>
+            <div>
+                <!-- Direct link to Swagger UI (Requirement 4) -->
+                <a href="/swagger" target="_blank" class="btn btn-warning text-dark fw-bold px-4 py-2 shadow-sm">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Interactive Swagger UI
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+    <div class="row g-4">
+        <!-- 1. Authentication & Security Card -->
+        <div class="col-lg-12">
+            <div class="lib-card p-4 shadow-sm">
+                <div class="row align-items-center g-4">
+                    <div class="col-md-7">
+                        <h4 class="fw-bold text-dark mb-2">
+                            <i class="bi bi-key-fill text-warning me-2"></i>Authentication & API Key
+                        </h4>
+                        <p class="text-muted mb-3">
+                            All requests to the <code>/api/*</code> surface must provide the API key via the <code>X-Api-Key</code> HTTP request header. Requests with missing or incorrect keys will receive an <code>HTTP 401 Unauthorized</code> response.
+                        </p>
+                        <div class="p-3 bg-light rounded-3 font-monospace small border">
+                            <span class="text-muted d-block mb-1">// Standard Header:</span>
+                            <strong>X-Api-Key: </strong><code class="text-primary fs-6">@apiKey</code>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="p-3 rounded-3 border bg-light h-100">
+                            <h6 class="fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-2"></i>API Security Policies</h6>
+                            <ul class="list-unstyled small text-muted mb-0 space-y-2">
+                                <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i><strong>Strict DTO Envelopes:</strong> Zero patron or staff records exposed.</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i><strong>Read-Only GET:</strong> Mutation requests (POST, PUT, DELETE) are rejected.</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-success me-1"></i><strong>CORS Enabled:</strong> Pre-flight and cross-origin GET queries permitted.</li>
+                                <li><i class="bi bi-check2 text-success me-1"></i><strong>Rate Limiting:</strong> 60 calls/minute fixed window per IP.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Endpoints Reference Table -->
+        <div class="col-lg-12">
+            <div class="lib-card p-0 shadow-sm overflow-hidden">
+                <div class="p-4 border-bottom bg-light">
+                    <h4 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-hdd-network text-primary me-2"></i>Endpoints Reference
+                    </h4>
+                    <p class="text-muted small mb-0">Base URL: <code>http://localhost:5000/api</code></p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 100px;">Method</th>
+                                <th style="width: 260px;">Endpoint Path</th>
+                                <th>Description</th>
+                                <th style="width: 240px;">Query Parameters</th>
+                                <th style="width: 130px;" class="text-end">Test</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Endpoint 1 -->
+                            <tr>
+                                <td><span class="badge bg-primary fs-6">GET</span></td>
+                                <td><code>/api/items</code></td>
+                                <td>
+                                    <strong>Catalog Search & List:</strong> Returns paginated collection items with branch names and availability status.
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">search</span>
+                                    <span class="badge bg-light text-dark border">category</span>
+                                    <span class="badge bg-light text-dark border">status</span>
+                                    <span class="badge bg-light text-dark border">branchCode</span>
+                                    <span class="badge bg-light text-dark border">page</span>
+                                    <span class="badge bg-light text-dark border">pageSize</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="/api/items" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                                </td>
+                            </tr>
+                            <!-- Endpoint 2 -->
+                            <tr>
+                                <td><span class="badge bg-primary fs-6">GET</span></td>
+                                <td><code>/api/items/{id}</code></td>
+                                <td>
+                                    <strong>Item Detail:</strong> Complete bibliographic/product metadata for a book, music record, or toy item.
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">id (path integer)</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="/api/items/1" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                                </td>
+                            </tr>
+                            <!-- Endpoint 3 -->
+                            <tr>
+                                <td><span class="badge bg-primary fs-6">GET</span></td>
+                                <td><code>/api/categories</code></td>
+                                <td>
+                                    <strong>Category Directory:</strong> Classification categories (Book, Music, Toy) with live inventory counts.
+                                </td>
+                                <td><span class="text-muted small">None</span></td>
+                                <td class="text-end">
+                                    <a href="/api/categories" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                                </td>
+                            </tr>
+                            <!-- Endpoint 4 -->
+                            <tr>
+                                <td><span class="badge bg-primary fs-6">GET</span></td>
+                                <td><code>/api/branches</code></td>
+                                <td>
+                                    <strong>Branch Directory:</strong> Public branch locations, addresses, phone numbers, and physical holdings.
+                                </td>
+                                <td><span class="text-muted small">None</span></td>
+                                <td class="text-end">
+                                    <a href="/api/branches" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                                </td>
+                            </tr>
+                            <!-- Endpoint 5 -->
+                            <tr>
+                                <td><span class="badge bg-primary fs-6">GET</span></td>
+                                <td><code>/api/status</code></td>
+                                <td>
+                                    <strong>System & Health Status:</strong> Operational health, app version, server UTC timestamp, and total inventory.
+                                </td>
+                                <td><span class="text-muted small">None</span></td>
+                                <td class="text-end">
+                                    <a href="/api/status" target="_blank" class="btn btn-sm btn-outline-primary">Open</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Example Curl Requests -->
+        <div class="col-lg-12">
+            <div class="lib-card p-4 shadow-sm">
+                <h4 class="fw-bold text-dark mb-3">
+                    <i class="bi bi-terminal text-dark me-2"></i>Quick-Start cURL Commands
+                </h4>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">1. Search Available Books:</label>
+                        <pre class="bg-dark text-light p-3 rounded-3 small mb-0 font-monospace"><code>curl -H "X-Api-Key: @apiKey" \
+  "http://localhost:5000/api/items?category=Book&status=Available"</code></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">2. Get Item Details (#1):</label>
+                        <pre class="bg-dark text-light p-3 rounded-3 small mb-0 font-monospace"><code>curl -H "X-Api-Key: @apiKey" \
+  "http://localhost:5000/api/items/1"</code></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">3. Check System Operational Status:</label>
+                        <pre class="bg-dark text-light p-3 rounded-3 small mb-0 font-monospace"><code>curl -H "X-Api-Key: @apiKey" \
+  "http://localhost:5000/api/status"</code></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small text-muted">4. Test Unauthorized (401 Response):</label>
+                        <pre class="bg-dark text-light p-3 rounded-3 small mb-0 font-monospace"><code>curl -i "http://localhost:5000/api/items"</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,173 @@
+@model LibraTrack.Models.ViewModels.KioskLoginViewModel
+@{
+    Layout = "_KioskLayout";
+    ViewData["Title"] = "Patron Authentication";
+    var actionLabel = Model.TargetAction?.ToLower() == "account" ? "Access My Account" : "Proceed to Check Out";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="kiosk-card">
+            @if (Model.IsLocked)
+            {
+                <div class="text-center py-4">
+                    <div class="text-danger mb-3">
+                        <i class="bi bi-shield-x display-1"></i>
+                    </div>
+                    <h2 class="display-6 fw-bold text-danger mb-3">Session Locked</h2>
+                    <div class="alert alert-danger fs-5 p-4 rounded-4 text-start mb-4">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-3"></i>
+                        <strong>Security Lockout:</strong> @Model.ErrorMessage
+                    </div>
+                    <p class="text-muted fs-5 mb-4">
+                        To protect member accounts, this kiosk terminal has paused. Please visit the reception desk with your photo ID to unlock your account and reset your 4-digit PIN.
+                    </p>
+                    <a asp-action="Finish" class="btn btn-dark btn-lg px-5 py-3 fs-4 rounded-pill">
+                        <i class="bi bi-arrow-left me-2"></i>Return to Welcome Screen
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="text-center mb-4">
+                    <span class="badge bg-secondary px-3 py-2 fs-6 rounded-pill text-uppercase mb-2">Step 1 of 2</span>
+                    <h2 class="display-6 fw-bold text-dark mb-1" style="font-family: 'Playfair Display', serif;">
+                        Scan or Enter Library Card
+                    </h2>
+                    <p class="text-muted fs-5">
+                        Scan your card barcode or enter your card number and 4-digit PIN.
+                    </p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger fs-5 p-3 rounded-4 mb-4" role="alert">
+                        <i class="bi bi-exclamation-circle-fill me-2 fs-4"></i>@Model.ErrorMessage
+                    </div>
+                }
+
+                <form asp-action="Login" method="post" id="kioskLoginForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="TargetAction" />
+
+                    <!-- Borrower Card Number (Barcode Scanner Compatible) -->
+                    <div class="mb-4">
+                        <label asp-for="BorrowerCardNumber" class="form-label fs-5 fw-bold text-dark">
+                            <i class="bi bi-upc-scan me-2 text-primary"></i>Borrower Card Number
+                        </label>
+                        <input asp-for="BorrowerCardNumber" 
+                               id="borrowerCardInput"
+                               class="form-control kiosk-input" 
+                               placeholder="e.g. BRW-1001" 
+                               autocomplete="off"
+                               autofocus 
+                               required />
+                        <span asp-validation-for="BorrowerCardNumber" class="text-danger small"></span>
+                        <div class="form-text fs-6 text-muted text-center mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Barcode scanner ready: scanning your card will auto-fill this box.
+                        </div>
+                    </div>
+
+                    <!-- 4-Digit PIN -->
+                    <div class="mb-4">
+                        <label asp-for="Pin" class="form-label fs-5 fw-bold text-dark text-center d-block">
+                            <i class="bi bi-key-fill me-2 text-warning"></i>4-Digit Security PIN
+                        </label>
+                        <input asp-for="Pin" 
+                               id="pinInput"
+                               type="password" 
+                               maxlength="4" 
+                               class="form-control kiosk-input text-center" 
+                               placeholder="••••" 
+                               pattern="\d{4}"
+                               inputmode="numeric"
+                               autocomplete="off" 
+                               required />
+                        <span asp-validation-for="Pin" class="text-danger small"></span>
+                        <div class="form-text fs-6 text-muted text-center mt-1">
+                            Default seeded PIN for testing is <code>1234</code>. Locked after 3 wrong tries.
+                        </div>
+                    </div>
+
+                    <!-- Touch Keypad for PIN -->
+                    <div class="mb-4">
+                        <div class="keypad-grid">
+                            <button type="button" class="keypad-btn" onclick="appendPin('1')">1</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('2')">2</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('3')">3</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('4')">4</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('5')">5</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('6')">6</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('7')">7</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('8')">8</button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('9')">9</button>
+                            <button type="button" class="keypad-btn text-danger" onclick="clearPin()" title="Clear">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                            <button type="button" class="keypad-btn" onclick="appendPin('0')">0</button>
+                            <button type="button" class="keypad-btn text-secondary" onclick="backspacePin()" title="Backspace">
+                                <i class="bi bi-backspace"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="row g-2 pt-3 border-top">
+                        <div class="col-12 col-sm-auto">
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg w-100 px-4 py-3 rounded-pill fs-5">
+                                <i class="bi bi-arrow-left me-1"></i>Cancel
+                            </a>
+                        </div>
+                        <div class="col-12 col-sm">
+                            <button type="submit" class="btn btn-dark btn-lg w-100 px-4 py-3 rounded-pill fs-5 fs-md-4 fw-bold shadow">
+                                @actionLabel <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const pinInput = document.getElementById('pinInput');
+        const cardInput = document.getElementById('borrowerCardInput');
+        const loginForm = document.getElementById('kioskLoginForm');
+
+        function appendPin(digit) {
+            if (pinInput && pinInput.value.length < 4) {
+                pinInput.value += digit;
+                if (pinInput.value.length === 4 && cardInput && cardInput.value.trim().length > 0) {
+                    // Auto submit on 4th digit if card entered
+                    loginForm.submit();
+                }
+            }
+        }
+
+        function clearPin() {
+            if (pinInput) pinInput.value = '';
+        }
+
+        function backspacePin() {
+            if (pinInput && pinInput.value.length > 0) {
+                pinInput.value = pinInput.value.slice(0, -1);
+            }
+        }
+
+        // Handle barcode scanner Enter on cardInput
+        if (cardInput) {
+            cardInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (pinInput && pinInput.value.length < 4) {
+                        pinInput.focus();
+                    } else if (loginForm) {
+                        loginForm.submit();
+                    }
+                }
+            });
+        }
+    </script>
+}
