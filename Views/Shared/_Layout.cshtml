@@ -176,6 +176,9 @@
                                     @if (User.IsInRole("Admin"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="Index"><i class="bi bi-shield-check me-2"></i>Admin Dashboard</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Transfers" asp-action="Index"><i class="bi bi-truck me-2"></i>Inter-Branch Transfers</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reservations" asp-action="Index"><i class="bi bi-bookmark-star me-2"></i>Hold Reservations</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell me-2"></i>Patron Notifications</a></li>
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="CreateBook"><i class="bi bi-journal-plus me-2"></i>Add Book</a></li>
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="CreateMusic"><i class="bi bi-disc me-2"></i>Add Music</a></li>
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="CreateToy"><i class="bi bi-puzzle me-2"></i>Add Toy</a></li>
@@ -186,11 +189,14 @@
                                         <li><a class="dropdown-item" asp-controller="Borrowers" asp-action="Create"><i class="bi bi-person-plus me-2"></i>Register Borrower</a></li>
                                         <li><a class="dropdown-item" asp-controller="Loans" asp-action="Issue"><i class="bi bi-box-arrow-up-right me-2"></i>Issue Item</a></li>
                                         <li><a class="dropdown-item" asp-controller="Loans" asp-action="Index"><i class="bi bi-arrow-return-left me-2"></i>Returns & Fines</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reservations" asp-action="Index"><i class="bi bi-bookmark-star me-2"></i>Hold Reservations</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Transfers" asp-action="Index"><i class="bi bi-truck me-2"></i>Inter-Branch Transfers</a></li>
                                     }
                                     @if (User.IsInRole("Manager"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Manager" asp-action="Index"><i class="bi bi-graph-up me-2"></i>Manager Dashboard</a></li>
                                         <li><a class="dropdown-item" asp-controller="Manager" asp-action="Statistics"><i class="bi bi-graph-up-arrow me-2"></i>Full Statistics</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell me-2"></i>Patron Notifications</a></li>
                                     }
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
