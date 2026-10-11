@@ -94,6 +94,9 @@ namespace LibraTrack.Models.ViewModels
     {
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
+        public int? SelectedBranchId { get; set; }
+        public string SelectedBranchName { get; set; } = "All Branches";
+        public List<Branch> Branches { get; set; } = new();
 
         // Stat 1: Most Popular Item
         public string? MostPopularItemName { get; set; }
