@@ -280,6 +280,99 @@ namespace LibraTrack.Models.ViewModels
         public int BorrowedCount { get; set; }
         public int DamagedCount { get; set; }
         public int DestroyedCount { get; set; }
+        public int? SelectedBranchId { get; set; }
+        public List<Branch> Branches { get; set; } = new();
         public List<string> AvailableGenres { get; set; } = new();
+    }
+
+    public class CreateTransferViewModel
+    {
+        [Required(ErrorMessage = "Please select an item to transfer.")]
+        [Display(Name = "Select Item")]
+        public int ItemId { get; set; }
+
+        [Display(Name = "Current Branch")]
+        public int FromBranchId { get; set; }
+        public string? FromBranchName { get; set; }
+
+        [Required(ErrorMessage = "Please select a destination branch.")]
+        [Display(Name = "Destination Branch")]
+        public int ToBranchId { get; set; }
+
+        [StringLength(500, ErrorMessage = "Notes cannot exceed 500 characters.")]
+        [Display(Name = "Transfer Notes / Reason")]
+        public string? Notes { get; set; }
+
+        public List<Item> AvailableItems { get; set; } = new();
+        public List<Branch> DestinationBranches { get; set; } = new();
+    }
+
+    public class TransferListViewModel
+    {
+        public List<ItemTransfer> Transfers { get; set; } = new();
+        public string ActiveFilter { get; set; } = "all";
+        public string? SearchTerm { get; set; }
+        public int TotalCount { get; set; }
+        public int RequestedCount { get; set; }
+        public int InTransitCount { get; set; }
+        public int ReceivedCount { get; set; }
+    }
+
+    public class NotificationDashboardViewModel
+    {
+        public List<Notification> Notifications { get; set; } = new();
+        public NotificationType? SelectedType { get; set; }
+        public NotificationChannel? SelectedChannel { get; set; }
+        public string? SearchTerm { get; set; }
+
+        // Metrics
+        public int TotalSentCount { get; set; }
+        public int EmailCount { get; set; }
+        public int SmsCount { get; set; }
+
+        public int BorrowedCount { get; set; }
+        public int DueSoonCount { get; set; }
+        public int OverdueCount { get; set; }
+        public int FineIssuedCount { get; set; }
+        public int ReservationReadyCount { get; set; }
+    }
+
+    public class CreateReservationViewModel
+    {
+        [Required(ErrorMessage = "Please select an item to reserve.")]
+        [Display(Name = "Catalog Item")]
+        public int ItemId { get; set; }
+
+        [Required(ErrorMessage = "Please select a patron for the reservation.")]
+        [Display(Name = "Borrower / Patron")]
+        public int BorrowerId { get; set; }
+
+        [StringLength(300)]
+        [Display(Name = "Staff Notes")]
+        public string? Notes { get; set; }
+
+        public string? SelectedItemName { get; set; }
+        public string? SelectedItemCode { get; set; }
+        public ItemStatus? SelectedItemStatus { get; set; }
+        public int CurrentQueueLength { get; set; }
+
+        public List<Item> EligibleItems { get; set; } = new();
+        public List<Borrower> ActiveBorrowers { get; set; } = new();
+    }
+
+    public class ReservationListViewModel
+    {
+        public List<Reservation> Reservations { get; set; } = new();
+        public string ActiveFilter { get; set; } = "all";
+        public string? SearchTerm { get; set; }
+        public int? FilterItemId { get; set; }
+
+        // KPI Counts
+        public int TotalCount { get; set; }
+        public int WaitingCount { get; set; }
+        public int ReadyCount { get; set; }
+        public int FulfilledCount { get; set; }
+        public int CancelledCount { get; set; }
+        public int ExpiredCount { get; set; }
     }
 }
