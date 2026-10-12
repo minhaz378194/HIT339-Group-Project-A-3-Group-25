@@ -88,6 +88,33 @@ namespace LibraTrack.Models
         }
 
         /// <summary>
+        /// True if the loan is not returned, not overdue, but due within 2 days.
+        /// </summary>
+        [NotMapped]
+        public bool IsDueSoon
+        {
+            get
+            {
+                if (IsReturned || IsOverdue) return false;
+                var days = (DueDate.Date - DateTime.UtcNow.Date).Days;
+                return days >= 0 && days <= 2;
+            }
+        }
+
+        /// <summary>
+        /// Number of days until this loan is due (0 if due today).
+        /// </summary>
+        [NotMapped]
+        public int DaysUntilDue
+        {
+            get
+            {
+                var days = (DueDate.Date - DateTime.UtcNow.Date).Days;
+                return days > 0 ? days : 0;
+            }
+        }
+
+        /// <summary>
         /// Calculates the overdue fine amount using the standard library daily fine rate ($1.00 / day).
         /// </summary>
         public decimal CalculateDynamicFine(decimal dailyRate = 1.00m)

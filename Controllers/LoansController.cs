@@ -12,11 +12,18 @@ namespace LibraTrack.Controllers
     public class LoansController : Controller
     {
         private readonly LibraryDbContext _context;
+        private readonly INotificationService _notificationService;
+        private readonly IReservationService _reservationService;
         private const decimal DailyFineRate = 1.00m; // $1.00 per day overdue
 
-        public LoansController(LibraryDbContext context)
+        public LoansController(
+            LibraryDbContext context, 
+            INotificationService notificationService,
+            IReservationService reservationService)
         {
             _context = context;
+            _notificationService = notificationService;
+            _reservationService = reservationService;
         }
 
         // GET: /Loans
@@ -123,6 +130,13 @@ namespace LibraTrack.Controllers
                 ModelState.AddModelError("BorrowerId", $"Borrower '{borrower.FullName}' is inactive/suspended.");
             }
 
+            // Requirement 4: Do not let other borrowers issue an item that has a Ready reservation for someone else
+            var readyReservation = await _reservationService.GetActiveReadyReservationAsync(model.ItemId);
+            if (readyReservation != null && readyReservation.BorrowerId != model.BorrowerId)
+            {
+                ModelState.AddModelError("ItemId", $"Item '{item?.Name}' is currently held under a Ready reservation for {readyReservation.Borrower.FullName} until {readyReservation.ExpiresAt:dd MMM yyyy HH:mm} UTC. Only the reserving patron may issue it.");
+            }
+
             if (ModelState.IsValid)
             {
                 var loan = new Loan
@@ -142,6 +156,32 @@ namespace LibraTrack.Controllers
 
                 _context.Loans.Add(loan);
                 await _context.SaveChangesAsync();
+
+                // Requirement 5: When the reserved borrower borrows the item, mark reservation Fulfilled and update queue positions
+                var patronReservation = await _context.Reservations
+                    .FirstOrDefaultAsync(r => r.ItemId == model.ItemId && 
+                                              r.BorrowerId == model.BorrowerId && 
+                                              (r.Status == ReservationStatus.Ready || r.Status == ReservationStatus.Waiting));
+                if (patronReservation != null)
+                {
+                    patronReservation.Status = ReservationStatus.Fulfilled;
+                    patronReservation.QueuePosition = 0;
+                    await _context.SaveChangesAsync();
+
+                    await _reservationService.ResequenceQueueAsync(model.ItemId);
+                }
+
+                // Dispatch simulated notification on issue (Requirement 3)
+                try
+                {
+                    loan.Item = item;
+                    loan.Borrower = borrower!;
+                    await _notificationService.SendItemIssuedNotificationAsync(loan);
+                }
+                catch
+                {
+                    // Fail gracefully so user loan flow is never blocked
+                }
 
                 TempData["Success"] = $"'{item.Name}' ({item.LibraryCode}) successfully issued to {borrower!.FullName} until {loan.DueDate:dd MMM yyyy}.";
                 return RedirectToAction(nameof(Index), new { filter = "active" });
