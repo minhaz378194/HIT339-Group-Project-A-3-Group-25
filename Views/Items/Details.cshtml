@@ -102,14 +102,49 @@
                         <span>#@Model.Id</span>
                     </div>
                     <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Branch Location:</span>
+                        <strong class="text-primary"><i class="bi bi-geo-alt-fill text-danger me-1"></i>@(Model.Branch?.Name ?? "Main Branch")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
                         <span class="text-muted">Replacement Value:</span>
                         <span>$@Model.ReplacementCost.ToString("F2")</span>
                     </div>
+                    <div class="d-flex justify-content-between py-1 border-bottom">
+                        <span class="text-muted">Reservation Queue:</span>
+                        @if (ViewBag.WaitingQueueCount is int queueCount && queueCount > 0)
+                        {
+                            <span class="badge bg-warning text-dark"><i class="bi bi-people me-1"></i>@queueCount patron(s) waiting</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No waitlist</span>
+                        }
+                    </div>
+                    @if (ViewBag.ActiveReadyHold is LibraTrack.Models.Reservation readyHold)
+                    {
+                        <div class="py-1 border-bottom text-success small">
+                            <i class="bi bi-box2-heart me-1"></i><strong>Ready on Hold Shelf:</strong> @readyHold.Borrower.FullName (until @readyHold.ExpiresAt?.ToString("dd MMM HH:mm"))
+                        </div>
+                    }
                     <div class="d-flex justify-content-between py-1">
                         <span class="text-muted">Cataloged Date:</span>
                         <span>@Model.CreatedAt.ToString("dd MMM yyyy")</span>
                     </div>
                 </div>
+
+                @if (Model.Status != LibraTrack.Models.ItemStatus.Borrowed)
+                {
+                    <a asp-controller="Transfers" asp-action="Create" asp-route-itemId="@Model.Id" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-truck me-1"></i>Transfer Branch
+                    </a>
+                }
+
+                @if (Model.Status == LibraTrack.Models.ItemStatus.Borrowed || Model.Status == LibraTrack.Models.ItemStatus.Damaged)
+                {
+                    <a asp-controller="Reservations" asp-action="Create" asp-route-itemId="@Model.Id" class="btn btn-warning text-dark w-100 mb-2">
+                        <i class="bi bi-bookmark-plus me-1"></i>Place Patron Hold / Waitlist
+                    </a>
+                }
 
                 <a asp-action="Index" class="btn btn-lib-outline w-100">
                     <i class="bi bi-arrow-left me-1"></i>Back to Admin Hub
