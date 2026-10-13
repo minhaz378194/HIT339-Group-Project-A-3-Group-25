@@ -78,17 +78,50 @@ namespace LibraTrack.Controllers
             if (!string.IsNullOrWhiteSpace(q))
             {
                 var term = q.Trim().ToLower();
-                query = query.Where(i =>
-                    i.Name.ToLower().Contains(term) ||
-                    i.LibraryCode.ToLower().Contains(term) ||
-                    i.Description.ToLower().Contains(term) ||
-                    (i is Book && ((Book)i).Author.ToLower().Contains(term)) ||
-                    (i is Book && ((Book)i).Genre.ToLower().Contains(term)) ||
-                    (i is Music && ((Music)i).Artist.ToLower().Contains(term)) ||
-                    (i is Music && ((Music)i).Genre != null && ((Music)i).Genre!.ToLower().Contains(term)) ||
-                    (i is Toy && ((Toy)i).ToyType.ToLower().Contains(term)) ||
-                    (i is Toy && ((Toy)i).Brand != null && ((Toy)i).Brand!.ToLower().Contains(term))
-                );
+                if (string.Equals(type, "Book", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(i =>
+                        i.Name.ToLower().Contains(term) ||
+                        i.LibraryCode.ToLower().Contains(term) ||
+                        i.Description.ToLower().Contains(term) ||
+                        (i is Book && ((Book)i).Author.ToLower().Contains(term)) ||
+                        (i is Book && ((Book)i).Genre.ToLower().Contains(term))
+                    );
+                }
+                else if (string.Equals(type, "Music", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(i =>
+                        i.Name.ToLower().Contains(term) ||
+                        i.LibraryCode.ToLower().Contains(term) ||
+                        i.Description.ToLower().Contains(term) ||
+                        (i is Music && ((Music)i).Artist.ToLower().Contains(term)) ||
+                        (i is Music && ((Music)i).Genre != null && ((Music)i).Genre!.ToLower().Contains(term))
+                    );
+                }
+                else if (string.Equals(type, "Toy", StringComparison.OrdinalIgnoreCase))
+                {
+                    query = query.Where(i =>
+                        i.Name.ToLower().Contains(term) ||
+                        i.LibraryCode.ToLower().Contains(term) ||
+                        i.Description.ToLower().Contains(term) ||
+                        (i is Toy && ((Toy)i).ToyType.ToLower().Contains(term)) ||
+                        (i is Toy && ((Toy)i).Brand != null && ((Toy)i).Brand!.ToLower().Contains(term))
+                    );
+                }
+                else
+                {
+                    query = query.Where(i =>
+                        i.Name.ToLower().Contains(term) ||
+                        i.LibraryCode.ToLower().Contains(term) ||
+                        i.Description.ToLower().Contains(term) ||
+                        (i is Book && ((Book)i).Author.ToLower().Contains(term)) ||
+                        (i is Book && ((Book)i).Genre.ToLower().Contains(term)) ||
+                        (i is Music && ((Music)i).Artist.ToLower().Contains(term)) ||
+                        (i is Music && ((Music)i).Genre != null && ((Music)i).Genre!.ToLower().Contains(term)) ||
+                        (i is Toy && ((Toy)i).ToyType.ToLower().Contains(term)) ||
+                        (i is Toy && ((Toy)i).Brand != null && ((Toy)i).Brand!.ToLower().Contains(term))
+                    );
+                }
             }
 
             // Genre filter (Books)
