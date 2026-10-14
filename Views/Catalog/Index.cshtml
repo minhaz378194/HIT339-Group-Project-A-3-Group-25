@@ -32,7 +32,7 @@
                 <!-- Dropdown Filters Row -->
                 <div class="row g-2 align-items-center pt-2 border-top">
                     <!-- 1. Category / Type Dropdown -->
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3">
                         <label class="form-label small fw-bold text-muted mb-1">
                             <i class="bi bi-grid-fill me-1 text-warning"></i> Item Category
                         </label>
@@ -45,7 +45,7 @@
                     </div>
 
                     <!-- 2. Status Dropdown -->
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-3">
                         <label class="form-label small fw-bold text-muted mb-1">
                             <i class="bi bi-check-circle-fill me-1 text-success"></i> Availability & Status
                         </label>
@@ -58,8 +58,22 @@
                         </select>
                     </div>
 
-                    <!-- 3. Sort Order Dropdown -->
-                    <div class="col-12 col-md-4">
+                    <!-- 3. Branch Dropdown -->
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small fw-bold text-muted mb-1">
+                            <i class="bi bi-geo-alt-fill me-1 text-danger"></i> Library Branch
+                        </label>
+                        <select name="branchId" class="form-select form-select-sm py-2 shadow-none border-secondary-subtle" onchange="this.form.submit()">
+                            <!option value="" @(!Model.SelectedBranchId.HasValue ? "selected" : "")>All Branches (@Model.Branches.Count)</!option>
+                            @foreach (var br in Model.Branches)
+                            {
+                                <!option value="@br.Id" @(Model.SelectedBranchId == br.Id ? "selected" : "")>🏛️ @br.Name</!option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- 4. Sort Order Dropdown -->
+                    <div class="col-12 col-md-3">
                         <label class="form-label small fw-bold text-muted mb-1">
                             <i class="bi bi-sort-down me-1 text-primary"></i> Sort Results By
                         </label>
@@ -73,7 +87,7 @@
                     </div>
                 </div>
 
-                @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.SelectedType) || !string.IsNullOrEmpty(Model.SelectedStatus) || !string.IsNullOrEmpty(Model.SortBy))
+                @if (!string.IsNullOrEmpty(Model.SearchQuery) || !string.IsNullOrEmpty(Model.SelectedType) || !string.IsNullOrEmpty(Model.SelectedStatus) || !string.IsNullOrEmpty(Model.SortBy) || Model.SelectedBranchId.HasValue)
                 {
                     <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
                         <div class="small text-muted">
@@ -190,6 +204,15 @@
                                     <div><i class="bi bi-puzzle-fill me-1"></i>@tItem.ToyType &bull; Min Age: @tItem.RecommendedAgeMin yrs</div>
                                 }
                             </div>
+
+                            @if (item.Branch != null)
+                            {
+                                <div class="mb-2">
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>@item.Branch.Name
+                                    </span>
+                                </div>
+                            }
 
                             <p class="item-card-desc flex-grow-1">@item.Description</p>
 
