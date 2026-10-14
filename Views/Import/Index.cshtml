@@ -1,0 +1,380 @@
+@model LibraTrack.Models.ViewModels.ImportIndexViewModel
+@{
+    ViewData["Title"] = "Catalog Data Importer";
+}
+
+<div class="container py-4">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="h3 fw-bold mb-1 text-primary">
+                <i class="bi bi-cloud-arrow-up me-2"></i>Catalog Data Importer
+            </h2>
+            <p class="text-muted mb-0">
+                Bulk import library items via CSV or search and add books using the local Mock Metadata Provider.
+            </p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <a asp-action="DownloadTemplate" class="btn btn-outline-secondary shadow-sm">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Download CSV Template
+            </a>
+            <a asp-controller="Items" asp-action="Index" class="btn btn-outline-primary shadow-sm">
+                <i class="bi bi-collection me-1"></i>Back to Catalog
+            </a>
+        </div>
+    </div>
+
+    <!-- Post-Import Summary Alert (if coming from a completed import) -->
+    @if (Model.LastSummary != null)
+    {
+        <div class="alert @(Model.LastSummary.HasErrors ? "alert-warning" : "alert-success") border-0 shadow-sm rounded-3 p-4 mb-4">
+            <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+                <div>
+                    <h5 class="alert-heading fw-bold mb-2">
+                        <i class="bi @(Model.LastSummary.HasErrors ? "bi-exclamation-triangle-fill text-warning" : "bi-check-circle-fill text-success") me-2"></i>
+                        Import Transaction Finished
+                    </h5>
+                    <p class="mb-2">
+                        Processed <strong>@Model.LastSummary.TotalRows</strong> row(s) from your file on @Model.LastSummary.ImportedAt.ToLocalTime().ToString("g").
+                    </p>
+                    <div class="d-flex gap-3">
+                        <span class="badge bg-success fs-6 py-2 px-3">
+                            <i class="bi bi-check-lg me-1"></i>Imported: @Model.LastSummary.ImportedCount
+                        </span>
+                        <span class="badge @(Model.LastSummary.SkippedCount > 0 ? "bg-danger" : "bg-secondary") fs-6 py-2 px-3">
+                            <i class="bi bi-slash-circle me-1"></i>Skipped / Errors: @Model.LastSummary.SkippedCount
+                        </span>
+                    </div>
+                </div>
+                @if (Model.LastSummary.HasErrors && Model.LastSummary.LogId.HasValue)
+                {
+                    <div>
+                        <a asp-action="DownloadErrorReport" asp-route-logId="@Model.LastSummary.LogId.Value" class="btn btn-danger shadow-sm">
+                            <i class="bi bi-download me-1"></i>Download Error Report (CSV)
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-pills mb-4 gap-2" id="importerTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.MockSearchResults == null ? "active" : "") fw-semibold px-4 py-2" id="csv-tab" data-bs-toggle="pill" data-bs-target="#csv-pane" type="button" role="tab">
+                <i class="bi bi-filetype-csv me-2"></i>CSV Batch Upload
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(Model.MockSearchResults != null ? "active" : "") fw-semibold px-4 py-2" id="mock-tab" data-bs-toggle="pill" data-bs-target="#mock-pane" type="button" role="tab">
+                <i class="bi bi-search me-2"></i>Mock Metadata Provider
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="importerTabContent">
+        <!-- TAB 1: CSV Upload -->
+        <div class="tab-pane fade @(Model.MockSearchResults == null ? "show active" : "")" id="csv-pane" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-3 h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="card-title mb-0 fw-bold text-dark">
+                                <i class="bi bi-upload me-2 text-primary"></i>Upload Catalog CSV
+                            </h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <form asp-action="Upload" method="post" enctype="multipart/form-data">
+                                @Html.AntiForgeryToken()
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold">Select CSV File</label>
+                                    <input type="file" name="csvFile" class="form-control form-control-lg" accept=".csv" required />
+                                    <div class="form-text mt-2 text-muted">
+                                        Rows will be validated first. You will have a chance to preview and confirm valid items before they are added to the database.
+                                    </div>
+                                </div>
+
+                                <div class="p-3 bg-light rounded-3 mb-4 border">
+                                    <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-info-circle me-1 text-primary"></i>CSV Column Specifications:</h6>
+                                    <ul class="small text-muted mb-0 ps-3">
+                                        <li><strong>Common:</strong> <code>ItemType</code> (Book, Music, Toy), <code>LibraryCode</code> (e.g. BOK-1010), <code>Name</code>, <code>BranchCode</code> (CEN, CAS, PAL), <code>ReplacementCost</code>, <code>ImageUrl</code>, <code>Description</code></li>
+                                        <li><strong>Book:</strong> <code>Author</code>, <code>Genre</code>, <code>ISBN</code>, <code>PageCount</code>, <code>Publisher</code>, <code>PublicationYear</code></li>
+                                        <li><strong>Music:</strong> <code>Artist</code>, <code>ReleaseYear</code>, <code>RecordLabel</code>, <code>Format</code>, <code>DurationMinutes</code>, <code>MusicGenre</code></li>
+                                        <li><strong>Toy:</strong> <code>ToyType</code>, <code>RecommendedAgeMin</code>, <code>RecommendedAgeMax</code>, <code>Brand</code>, <code>PieceCount</code>, <code>SafetyNotes</code></li>
+                                    </ul>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary px-4 py-2 shadow-sm">
+                                        <i class="bi bi-eye me-1"></i>Preview & Validate CSV
+                                    </button>
+                                    <a asp-action="DownloadTemplate" class="btn btn-outline-secondary px-3 py-2">
+                                        <i class="bi bi-download me-1"></i>Template CSV
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-3 h-100 bg-light">
+                        <div class="card-header bg-transparent py-3 border-bottom">
+                            <h6 class="card-title mb-0 fw-bold text-dark">
+                                <i class="bi bi-shield-check me-2 text-success"></i>Automated Import Rules
+                            </h6>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="badge bg-primary rounded-circle p-2 me-3"><i class="bi bi-key"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Library Code Validation</h6>
+                                    <p class="small text-muted mb-0">Must match pattern <code>^[A-Z]{3}-\d{4}$</code> (e.g., BOK-1010). Duplicates in database or within the file are flagged.</p>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start mb-3">
+                                <div class="badge bg-success rounded-circle p-2 me-3"><i class="bi bi-geo-alt"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Branch Code Check</h6>
+                                    <p class="small text-muted mb-0">Must match an active branch code: <strong>CEN</strong> (Darwin Central), <strong>CAS</strong> (Casuarina), or <strong>PAL</strong> (Palmerston).</p>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-start">
+                                <div class="badge bg-info text-dark rounded-circle p-2 me-3"><i class="bi bi-arrow-repeat"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Atomic Database Transaction</h6>
+                                    <p class="small text-muted mb-0">Valid rows are committed in a single atomic transaction. Invalid rows are skipped and logged for error reporting.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Mock Metadata Provider -->
+        <div class="tab-pane fade @(Model.MockSearchResults != null ? "show active" : "")" id="mock-pane" role="tabpanel">
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-body p-4">
+                    <form asp-action="Index" method="get" class="row g-3 align-items-center">
+                        <div class="col-md-9">
+                            <label class="form-label fw-semibold">Search Local Metadata Provider (MockBooks.json)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" name="query" class="form-control form-control-lg" placeholder="Search by title, author, or ISBN (e.g. 'Project Hail Mary', '978-0735211292', 'Clean Code')..." value="@Model.SearchQuery" required />
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm">
+                                <i class="bi bi-search me-1"></i>Search Provider
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Search Results -->
+            @if (Model.MockSearchResults != null)
+            {
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold text-dark mb-0">
+                        Found @Model.MockSearchResults.Count book(s) matching "@Model.SearchQuery"
+                    </h5>
+                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Clear Search</a>
+                </div>
+
+                @if (!Model.MockSearchResults.Any())
+                {
+                    <div class="alert alert-info border-0 shadow-sm rounded-3 p-4 text-center">
+                        <i class="bi bi-info-circle fs-3 text-info d-block mb-2"></i>
+                        <h5>No matching books found in MockBooks.json</h5>
+                        <p class="text-muted mb-0">Try searching for popular titles like "Hail Mary", "Atomic", "Klara", "Clean Code", or leave blank to see featured titles.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="row g-4 mb-4">
+                        @foreach (var book in Model.MockSearchResults)
+                        {
+                            <div class="col-md-6 col-xl-4">
+                                <div class="card h-100 border-0 shadow-sm rounded-3 overflow-hidden d-flex flex-column">
+                                    <div class="row g-0 flex-grow-1">
+                                        <div class="col-4 bg-light d-flex align-items-center justify-content-center p-2">
+                                            @if (!string.IsNullOrEmpty(book.ImageUrl))
+                                            {
+                                                <img src="@book.ImageUrl" alt="@book.Title" class="img-fluid rounded shadow-sm" style="max-height: 160px; object-fit: cover;" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-book fs-1 text-secondary"></i>
+                                            }
+                                        </div>
+                                        <div class="col-8">
+                                            <div class="card-body p-3 d-flex flex-column h-100">
+                                                <span class="badge bg-secondary-subtle text-secondary align-self-start mb-1">@book.Genre</span>
+                                                <h6 class="fw-bold mb-1 text-truncate" title="@book.Title">@book.Title</h6>
+                                                <p class="text-muted small mb-1">By @book.Author</p>
+                                                <p class="small text-muted mb-2">
+                                                    <strong>ISBN:</strong> @(string.IsNullOrEmpty(book.ISBN) ? "N/A" : book.ISBN)<br />
+                                                    <strong>Pages:</strong> @(book.PageCount?.ToString() ?? "N/A") | <strong>Year:</strong> @(book.PublicationYear?.ToString() ?? "N/A")
+                                                </p>
+                                                <div class="mt-auto">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#importModal-@book.ISBN?.Replace("-", "")">
+                                                        <i class="bi bi-plus-circle me-1"></i>Add to Catalog
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Add Modal for this Book -->
+                                <div class="modal fade" id="importModal-@book.ISBN?.Replace("-", "")" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow">
+                                            <div class="modal-header bg-light">
+                                                <h5 class="modal-title fw-bold">
+                                                    <i class="bi bi-plus-circle text-primary me-2"></i>Add to Library Catalog
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form asp-action="ImportMockBook" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="Title" value="@book.Title" />
+                                                <input type="hidden" name="Author" value="@book.Author" />
+                                                <input type="hidden" name="Genre" value="@book.Genre" />
+                                                <input type="hidden" name="ISBN" value="@book.ISBN" />
+                                                <input type="hidden" name="PageCount" value="@book.PageCount" />
+                                                <input type="hidden" name="Publisher" value="@book.Publisher" />
+                                                <input type="hidden" name="PublicationYear" value="@book.PublicationYear" />
+                                                <input type="hidden" name="Description" value="@book.Description" />
+                                                <input type="hidden" name="ImageUrl" value="@book.ImageUrl" />
+                                                <input type="hidden" name="ReplacementCost" value="@book.ReplacementCost" />
+
+                                                <div class="modal-body p-4">
+                                                    <div class="mb-3">
+                                                        <label class="form-label text-muted small mb-0">Book Title</label>
+                                                        <div class="fw-bold">@book.Title</div>
+                                                        <div class="text-muted small">by @book.Author (@book.PublicationYear)</div>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Destination Branch <span class="text-danger">*</span></label>
+                                                        <select name="BranchId" class="form-select" required>
+                                                            @foreach (var br in Model.ActiveBranches)
+                                                            {
+                                                                <option value="@br.Id" selected="@(br.BranchCode == Model.DefaultBranchCode)">
+                                                                    @br.Name (@br.BranchCode)
+                                                                </option>
+                                                            }
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label fw-semibold">Library Code (XXX-0000) <span class="text-danger">*</span></label>
+                                                        <input type="text" name="LibraryCode" class="form-control text-uppercase" placeholder="e.g. BOK-1015" pattern="^[A-Z]{3}-\d{4}$" required />
+                                                        <div class="form-text small">Must match format <code>BOK-0000</code> and be unique.</div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer bg-light">
+                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" class="btn btn-primary px-4">
+                                                        <i class="bi bi-check2-circle me-1"></i>Confirm & Save
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Section: Import Audit Log Table -->
+    <div class="card border-0 shadow-sm rounded-3 mt-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 fw-bold text-dark">
+                <i class="bi bi-clock-history me-2 text-primary"></i>Recent Import History (ImportLog)
+            </h5>
+            <span class="badge bg-secondary-subtle text-secondary">@Model.RecentLogs.Count Total Logged</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 170px;">Date & Time</th>
+                        <th scope="col">User</th>
+                        <th scope="col">Source</th>
+                        <th scope="col" class="text-center">Total</th>
+                        <th scope="col" class="text-center">Imported</th>
+                        <th scope="col" class="text-center">Skipped</th>
+                        <th scope="col">Notes</th>
+                        <th scope="col" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.RecentLogs.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-4 text-muted">
+                                No import logs recorded yet.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var log in Model.RecentLogs)
+                        {
+                            <tr>
+                                <td class="small text-muted">
+                                    @log.ImportedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">@log.Username</span>
+                                </td>
+                                <td>
+                                    <span class="badge @(log.Source.Contains("CSV") ? "bg-info text-dark" : "bg-primary")">
+                                        @log.Source
+                                    </span>
+                                </td>
+                                <td class="text-center fw-bold">@log.TotalRows</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success">@log.ImportedCount</span>
+                                </td>
+                                <td class="text-center">
+                                    @if (log.SkippedCount > 0)
+                                    {
+                                        <span class="badge bg-danger">@log.SkippedCount</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">0</span>
+                                    }
+                                </td>
+                                <td class="small text-muted text-truncate" style="max-width: 250px;" title="@log.Notes">
+                                    @log.Notes
+                                </td>
+                                <td class="text-end">
+                                    @if (log.ErrorCount > 0 && !string.IsNullOrEmpty(log.ErrorReportJson))
+                                    {
+                                        <a asp-action="DownloadErrorReport" asp-route-logId="@log.Id" class="btn btn-sm btn-outline-danger" title="Download error report CSV">
+                                            <i class="bi bi-file-earmark-arrow-down me-1"></i>Errors CSV
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small"><i class="bi bi-check2 text-success"></i> Clean</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -5,17 +5,26 @@ using LibraTrack.Data;
 using LibraTrack.Models;
 using LibraTrack.Models.ViewModels;
 
+using LibraTrack.Services;
+
 namespace LibraTrack.Controllers
 {
     [Authorize(Roles = "Reception")]
     public class ReceptionController : Controller
     {
         private readonly LibraryDbContext _context;
+        private readonly INotificationService _notificationService;
+        private readonly IReservationService _reservationService;
         private const decimal DailyFineRate = 1.00m; // $1.00 per day overdue (or $1.50)
 
-        public ReceptionController(LibraryDbContext context)
+        public ReceptionController(
+            LibraryDbContext context,
+            INotificationService notificationService,
+            IReservationService reservationService)
         {
             _context = context;
+            _notificationService = notificationService;
+            _reservationService = reservationService;
         }
 
         // GET: /Reception or /Reception/Index
@@ -282,6 +291,14 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(IssueItem));
             }
 
+            // Check hold reservation shelf: Do not let other patrons issue an item held for someone else
+            var readyReservation = await _reservationService.GetActiveReadyReservationAsync(item.Id);
+            if (readyReservation != null && readyReservation.BorrowerId != borrower.Id)
+            {
+                TempData["Error"] = $"Item '{item.Name}' is held on the Ready shelf for patron {readyReservation.Borrower.FullName} until {readyReservation.ExpiresAt:dd MMM yyyy HH:mm} UTC.";
+                return RedirectToAction(nameof(IssueItem));
+            }
+
             // 3. Create Borrow Transaction
             var loan = new Loan
             {
@@ -300,6 +317,31 @@ namespace LibraTrack.Controllers
 
             _context.Loans.Add(loan);
             await _context.SaveChangesAsync();
+
+            // When the reserved borrower borrows the item, mark reservation Fulfilled and update queue positions
+            var patronReservation = await _context.Reservations
+                .FirstOrDefaultAsync(r => r.ItemId == item.Id && 
+                                          r.BorrowerId == borrower.Id && 
+                                          (r.Status == ReservationStatus.Ready || r.Status == ReservationStatus.Waiting));
+            if (patronReservation != null)
+            {
+                patronReservation.Status = ReservationStatus.Fulfilled;
+                patronReservation.QueuePosition = 0;
+                await _context.SaveChangesAsync();
+                await _reservationService.ResequenceQueueAsync(item.Id);
+            }
+
+            // Dispatch simulated notification on issue
+            try
+            {
+                loan.Item = item;
+                loan.Borrower = borrower;
+                await _notificationService.SendItemIssuedNotificationAsync(loan);
+            }
+            catch
+            {
+                // Non-blocking notification dispatch
+            }
 
             TempData["Success"] = $"Item issued successfully to {borrower.FullName}.";
             return RedirectToAction(nameof(Index));
@@ -407,13 +449,44 @@ namespace LibraTrack.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Dispatch fine notification if overdue fine was created
             if (fine > 0)
             {
-                TempData["Success"] = $"Item returned successfully. Fine charged: ${fine:F2}.";
+                try
+                {
+                    await _notificationService.SendFineIssuedNotificationAsync(loan, fine);
+                }
+                catch
+                {
+                    // Non-blocking notification dispatch
+                }
+            }
+
+            // Promote waiting reservation if returned in good condition
+            string reservationMsg = "";
+            if (model.Condition == ReturnCondition.Good)
+            {
+                try
+                {
+                    var promoted = await _reservationService.PromoteNextWaitingReservationAsync(loan.ItemId);
+                    if (promoted != null)
+                    {
+                        reservationMsg = $" Hold active: placed on Ready hold shelf for {promoted.Borrower?.FullName} (Expires {promoted.ExpiresAt:dd MMM yyyy}).";
+                    }
+                }
+                catch
+                {
+                    // Non-blocking reservation advancement
+                }
+            }
+
+            if (fine > 0)
+            {
+                TempData["Success"] = $"Item returned successfully. Fine charged: ${fine:F2}.{reservationMsg}";
             }
             else
             {
-                TempData["Success"] = "Item returned on time. No fine charged.";
+                TempData["Success"] = $"Item returned on time. No fine charged.{reservationMsg}";
             }
 
             return RedirectToAction(nameof(Index));

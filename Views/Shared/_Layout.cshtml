@@ -22,10 +22,10 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
-    <!-- Main Top Navigation -->
-    <header>
-        <nav class="navbar navbar-expand-lg sticky-top">
-            <div class="container-fluid px-lg-4">
+    <!-- Main Top Navigation (Floating Sticky Glassdoor) -->
+    <header class="navbar-wrapper sticky-top">
+        <nav class="navbar navbar-expand-xl" id="mainNavbar">
+            <div class="container-fluid px-2 px-xl-4">
                 <a class="navbar-brand d-flex align-items-center" asp-controller="Catalog" asp-action="Index">
                     <i class="bi bi-book-half me-2"></i>Libra<span>Track</span>
                 </a>
@@ -36,11 +36,22 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <ul class="navbar-nav me-auto mb-2 mb-xl-0">
                         <li class="nav-item">
                             <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Catalog" ? "active" : "")" 
                                asp-controller="Catalog" asp-action="Index">
-                                <i class="bi bi-compass me-1"></i>Explore Catalog
+                                <i class="bi bi-compass"></i><span>Catalog</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-warning fw-semibold" asp-controller="Kiosk" asp-action="Index">
+                                <i class="bi bi-display"></i><span>Kiosk</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "ApiDocs" ? "active" : "")" 
+                               asp-controller="ApiDocs" asp-action="Index">
+                                <i class="bi bi-code-square"></i><span>API Docs</span>
                             </a>
                         </li>
 
@@ -51,7 +62,31 @@
                                 <li class="nav-item">
                                     <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Items" || ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")" 
                                        asp-controller="Items" asp-action="Index">
-                                        <i class="bi bi-shield-check me-1"></i>Admin Dashboard
+                                        <i class="bi bi-shield-check"></i><span>Admin</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transfers" ? "active" : "")" 
+                                       asp-controller="Transfers" asp-action="Index">
+                                        <i class="bi bi-truck"></i><span>Transfers</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reservations" ? "active" : "")" 
+                                       asp-controller="Reservations" asp-action="Index">
+                                        <i class="bi bi-bookmark-star"></i><span>Reservations</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Notifications" ? "active" : "")" 
+                                       asp-controller="Notifications" asp-action="Index">
+                                        <i class="bi bi-bell"></i><span>Notifications</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Import" ? "active" : "")" 
+                                       asp-controller="Import" asp-action="Index">
+                                        <i class="bi bi-cloud-arrow-up"></i><span>Importer</span>
                                     </a>
                                 </li>
                             }
@@ -61,13 +96,25 @@
                                 <li class="nav-item">
                                     <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Borrowers" || ViewContext.RouteData.Values["controller"]?.ToString() == "Reception" ? "active" : "")" 
                                        asp-controller="Borrowers" asp-action="Index">
-                                        <i class="bi bi-people me-1"></i>Borrowers
+                                        <i class="bi bi-people"></i><span>Borrowers</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Loans" ? "active" : "")" 
                                        asp-controller="Loans" asp-action="Index">
-                                        <i class="bi bi-arrow-left-right me-1"></i>Loans & Fines
+                                        <i class="bi bi-arrow-left-right"></i><span>Loans</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reservations" ? "active" : "")" 
+                                       asp-controller="Reservations" asp-action="Index">
+                                        <i class="bi bi-bookmark-star"></i><span>Reservations</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transfers" ? "active" : "")" 
+                                       asp-controller="Transfers" asp-action="Index">
+                                        <i class="bi bi-truck"></i><span>Transfers</span>
                                     </a>
                                 </li>
                             }
@@ -77,13 +124,31 @@
                                 <li class="nav-item">
                                     <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Manager" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" 
                                        asp-controller="Manager" asp-action="Index">
-                                        <i class="bi bi-graph-up me-1"></i>Manager Dashboard
+                                        <i class="bi bi-graph-up"></i><span>Dashboard</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Manager" && ViewContext.RouteData.Values["action"]?.ToString() == "Statistics" ? "active" : "")" 
-                                       asp-controller="Manager" asp-action="Statistics">
-                                        <i class="bi bi-graph-up-arrow me-1"></i>Borrowing Statistics
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Manager" && (ViewContext.RouteData.Values["action"]?.ToString() == "BorrowingStatistics" || ViewContext.RouteData.Values["action"]?.ToString() == "Statistics") ? "active" : "")" 
+                                       asp-controller="Manager" asp-action="BorrowingStatistics">
+                                        <i class="bi bi-arrow-left-right"></i><span>Borrowing</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Manager" && ViewContext.RouteData.Values["action"]?.ToString() == "FineRevenueAudit" ? "active" : "")" 
+                                       asp-controller="Manager" asp-action="FineRevenueAudit">
+                                        <i class="bi bi-cash-coin"></i><span>Fine Audit</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Manager" && ViewContext.RouteData.Values["action"]?.ToString() == "InventoryHealth" ? "active" : "")" 
+                                       asp-controller="Manager" asp-action="InventoryHealth">
+                                        <i class="bi bi-box-seam"></i><span>Inventory</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Notifications" ? "active" : "")" 
+                                       asp-controller="Notifications" asp-action="Index">
+                                        <i class="bi bi-bell"></i><span>Notifications</span>
                                     </a>
                                 </li>
                             }
@@ -94,22 +159,26 @@
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "Staff";
-                            var fullName = User.FindFirst("FullName")?.Value ?? User.Identity.Name;
+                            var fullName = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "Staff";
+                            var shortName = !string.IsNullOrEmpty(fullName) && fullName.Contains('(') ? fullName.Substring(0, fullName.IndexOf('(')).Trim() : (fullName ?? "Staff");
 
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center py-1 px-3" 
                                         type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false" 
                                         style="border-color: var(--caramel); background: rgba(255,255,255,0.08);">
-                                    <i class="bi bi-person-circle me-2 fs-6"></i>
-                                    <span class="d-none d-md-inline me-2">@fullName</span>
-                                    <span class="badge rounded-pill ms-2" style="background:var(--caramel);font-size:0.75rem;">@role</span>
+                                    <i class="bi bi-person-circle me-1 fs-6"></i>
+                                    <span class="d-none d-md-inline me-1 text-truncate" style="max-width: 140px;" title="@fullName">@shortName</span>
+                                    <span class="badge rounded-pill ms-1" style="background:var(--caramel);font-size:0.75rem;">@role</span>
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="userMenuDropdown" style="background:var(--white); border-color:var(--border);">
-                                    <li class="dropdown-header text-muted small">Signed in as <strong>@User.Identity.Name</strong></li>
+                                    <li class="dropdown-header text-muted small">Signed in as <strong>@(User.Identity?.Name ?? "Staff")</strong></li>
                                     <li><hr class="dropdown-divider"></li>
                                     @if (User.IsInRole("Admin"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="Index"><i class="bi bi-shield-check me-2"></i>Admin Dashboard</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Transfers" asp-action="Index"><i class="bi bi-truck me-2"></i>Inter-Branch Transfers</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reservations" asp-action="Index"><i class="bi bi-bookmark-star me-2"></i>Hold Reservations</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell me-2"></i>Patron Notifications</a></li>
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="CreateBook"><i class="bi bi-journal-plus me-2"></i>Add Book</a></li>
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="CreateMusic"><i class="bi bi-disc me-2"></i>Add Music</a></li>
                                         <li><a class="dropdown-item" asp-controller="Items" asp-action="CreateToy"><i class="bi bi-puzzle me-2"></i>Add Toy</a></li>
@@ -120,11 +189,14 @@
                                         <li><a class="dropdown-item" asp-controller="Borrowers" asp-action="Create"><i class="bi bi-person-plus me-2"></i>Register Borrower</a></li>
                                         <li><a class="dropdown-item" asp-controller="Loans" asp-action="Issue"><i class="bi bi-box-arrow-up-right me-2"></i>Issue Item</a></li>
                                         <li><a class="dropdown-item" asp-controller="Loans" asp-action="Index"><i class="bi bi-arrow-return-left me-2"></i>Returns & Fines</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Reservations" asp-action="Index"><i class="bi bi-bookmark-star me-2"></i>Hold Reservations</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Transfers" asp-action="Index"><i class="bi bi-truck me-2"></i>Inter-Branch Transfers</a></li>
                                     }
                                     @if (User.IsInRole("Manager"))
                                     {
                                         <li><a class="dropdown-item" asp-controller="Manager" asp-action="Index"><i class="bi bi-graph-up me-2"></i>Manager Dashboard</a></li>
                                         <li><a class="dropdown-item" asp-controller="Manager" asp-action="Statistics"><i class="bi bi-graph-up-arrow me-2"></i>Full Statistics</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell me-2"></i>Patron Notifications</a></li>
                                     }
                                     <li><hr class="dropdown-divider"></li>
                                     <li>

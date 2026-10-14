@@ -96,6 +96,20 @@
                             <span asp-validation-for="ReplacementCost" class="text-danger"></span>
                         </div>
 
+                        <div class="col-md-6">
+                            <label asp-for="BranchId" class="form-label">Library Branch Location</label>
+                            <select asp-for="BranchId" class="form-select">
+                                @if (ViewBag.Branches is IEnumerable<LibraTrack.Models.Branch> branchList)
+                                {
+                                    foreach (var b in branchList)
+                                    {
+                                        <option value="@b.Id" selected="@(Model.BranchId == b.Id ? "selected" : null)">@b.Name (@b.BranchCode)</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="BranchId" class="text-danger"></span>
+                        </div>
+
                         <div class="col-12">
                             <label asp-for="ImageUrl" class="form-label"></label>
                             <input asp-for="ImageUrl" class="form-control" placeholder="https://images.unsplash.com/..." />

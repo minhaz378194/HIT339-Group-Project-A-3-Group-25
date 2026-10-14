@@ -1,0 +1,149 @@
+@model LibraTrack.Models.ViewModels.KioskCheckOutViewModel
+@{
+    Layout = "_KioskLayout";
+    ViewData["Title"] = "Self-Service Item Check Out";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="kiosk-card">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <div>
+                    <span class="badge bg-success px-3 py-2 fs-6 rounded-pill text-uppercase mb-2">Step 2: Check Out Item</span>
+                    <h2 class="display-6 fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                        Scan Item Barcode
+                    </h2>
+                </div>
+                <div>
+                    <a asp-action="Account" class="btn btn-outline-primary btn-lg rounded-pill px-4">
+                        <i class="bi bi-person-badge me-1"></i>My Account
+                    </a>
+                </div>
+            </div>
+
+            @if (TempData["KioskError"] != null)
+            {
+                <div class="alert alert-danger fs-5 p-3 rounded-4 mb-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>@TempData["KioskError"]
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger fs-5 p-3 rounded-4 mb-4" role="alert">
+                    <i class="bi bi-x-circle-fill me-2 fs-4"></i>@Model.ErrorMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.HoldRestrictionMessage))
+            {
+                <div class="alert alert-warning fs-5 p-3 rounded-4 mb-4" role="alert">
+                    <i class="bi bi-bookmark-x-fill me-2 fs-3 text-warning"></i>
+                    <strong>Hold Shelf Restricted:</strong> @Model.HoldRestrictionMessage
+                </div>
+            }
+
+            <!-- Barcode Scanner Friendly Input Form (Requirement 6) -->
+            <form asp-action="CheckOut" method="post" id="kioskScanForm" class="mb-4">
+                @Html.AntiForgeryToken()
+                <label asp-for="LibraryCode" class="form-label fs-5 fw-bold text-dark d-block text-center">
+                    <i class="bi bi-upc-scan me-2 text-success"></i>Scan Item Barcode or Enter Library Code
+                </label>
+                <div class="input-group input-group-lg mb-2">
+                    <input asp-for="LibraryCode" 
+                           id="itemBarcodeInput"
+                           class="form-control kiosk-input" 
+                           placeholder="Scan barcode or type code (e.g. BOK-1001)..." 
+                           autocomplete="off"
+                           autofocus />
+                    <button type="submit" class="btn btn-dark px-4 fs-4 fw-bold">
+                        <i class="bi bi-search me-1"></i>Scan
+                    </button>
+                </div>
+                <div class="form-text fs-6 text-muted text-center">
+                    <i class="bi bi-lightning-charge text-warning me-1"></i>Barcode scanners automatically type the code and submit with <strong>Enter</strong>.
+                </div>
+            </form>
+
+            <!-- Item Details & Confirmation Box (Requirement 3) -->
+            @if (Model.ScannedItem != null)
+            {
+                <div class="p-4 rounded-4 border bg-light mb-4 shadow-sm">
+                    <div class="row align-items-center g-4">
+                        <div class="col-md-3 text-center">
+                            @if (!string.IsNullOrEmpty(Model.ScannedItem.ImageUrl))
+                            {
+                                <img src="@Model.ScannedItem.ImageUrl" alt="@Model.ScannedItem.Name" 
+                                     class="img-fluid rounded-3 shadow-sm border" style="max-height: 180px; object-fit: cover;"
+                                     onerror="this.onerror=null; this.src='/images/placeholder.jpg';" />
+                            }
+                            else
+                            {
+                                <div class="bg-white border rounded-3 p-4 d-inline-block text-primary shadow-sm">
+                                    <i class="bi bi-book display-3"></i>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="col-md-9">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="badge bg-secondary fs-6">@Model.ScannedItem.ItemType</span>
+                                <span class="badge @(Model.ScannedItem.Status == LibraTrack.Models.ItemStatus.Available ? "bg-success" : "bg-danger") fs-6">
+                                    @Model.ScannedItem.Status
+                                </span>
+                                <code class="fs-6 fw-bold">@Model.ScannedItem.LibraryCode</code>
+                            </div>
+
+                            <h3 class="fw-bold text-dark mb-2">@Model.ScannedItem.Name</h3>
+
+                            <p class="text-muted fs-6 mb-3">
+                                @Model.ScannedItem.Description
+                            </p>
+
+                            <div class="d-flex flex-wrap gap-4 text-muted small border-top pt-2">
+                                <div><i class="bi bi-geo-alt-fill text-danger me-1"></i>Location: <strong>@(Model.ScannedItem.Branch?.Name ?? "Main")</strong></div>
+                                <div><i class="bi bi-calendar-check text-success me-1"></i>Loan Duration: <strong>14 Days</strong></div>
+                                <div><i class="bi bi-shield-check text-primary me-1"></i>Value: <strong>$@Model.ScannedItem.ReplacementCost.ToString("F2")</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (Model.CanConfirm)
+                    {
+                        <div class="mt-4 pt-3 border-top text-center">
+                            <form asp-action="ConfirmCheckOut" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="itemId" value="@Model.ScannedItem.Id" />
+                                <button type="submit" class="btn btn-success btn-lg px-5 py-3 fs-3 fw-bold w-100 rounded-pill shadow">
+                                    <i class="bi bi-check-circle-fill me-2"></i>Confirm & Check Out Item
+                                </button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                <a asp-action="Finish" class="btn btn-outline-danger btn-lg px-4 py-2 rounded-pill fs-5">
+                    <i class="bi bi-box-arrow-right me-1"></i>Done / Finish
+                </a>
+                <span class="text-muted small">
+                    <i class="bi bi-clock me-1"></i>Inactivity timer active
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const itemInput = document.getElementById('itemBarcodeInput');
+        if (itemInput) {
+            itemInput.focus();
+            // Highlight text when focused for quick rescanning
+            itemInput.addEventListener('focus', function() {
+                this.select();
+            });
+        }
+    </script>
+}

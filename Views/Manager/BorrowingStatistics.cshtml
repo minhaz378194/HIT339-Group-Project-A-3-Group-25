@@ -1,0 +1,193 @@
+@model LibraTrack.Models.ViewModels.BorrowingStatisticsReportViewModel
+@{
+    ViewData["Title"] = "Borrowing Statistics Report";
+}
+
+<div class="container py-4">
+    <!-- Header Section with Export Actions -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="h3 fw-bold mb-1 text-primary">
+                <i class="bi bi-graph-up-arrow me-2"></i>Borrowing Statistics Report
+            </h2>
+            <p class="text-muted mb-0">
+                Detailed catalog loan circulation audit across branches with date range filtering.
+            </p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <a asp-action="ExportBorrowingStatisticsCsv" 
+               asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))" 
+               asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))" 
+               asp-route-branchId="@Model.SelectedBranchId" 
+               class="btn btn-outline-success shadow-sm">
+                <i class="bi bi-filetype-csv me-1"></i>Export CSV
+            </a>
+            <a asp-action="ExportBorrowingStatisticsPdf" 
+               asp-route-fromDate="@(Model.FromDate?.ToString("yyyy-MM-dd"))" 
+               asp-route-toDate="@(Model.ToDate?.ToString("yyyy-MM-dd"))" 
+               asp-route-branchId="@Model.SelectedBranchId" 
+               class="btn btn-outline-danger shadow-sm">
+                <i class="bi bi-filetype-pdf me-1"></i>Export PDF
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-light">
+        <div class="card-body p-3">
+            <form asp-action="BorrowingStatistics" method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">Branch Location</label>
+                    <select name="branchId" class="form-select">
+                        <option value="">All Branches</option>
+                        @foreach (var br in Model.Branches)
+                        {
+                            <option value="@br.Id" selected="@(Model.SelectedBranchId == br.Id)">
+                                @br.Name (@br.BranchCode)
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">From Borrow Date</label>
+                    <input type="date" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1">To Borrow Date</label>
+                    <input type="date" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i>Apply Filter
+                    </button>
+                    <a asp-action="BorrowingStatistics" class="btn btn-outline-secondary" title="Reset filter">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Block with Totals -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 border-start border-4 border-primary bg-white h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Total Loans</div>
+                    <div class="h3 fw-bold mb-0 text-primary">@Model.TotalLoans</div>
+                    <small class="text-muted">Branch: @Model.SelectedBranchName</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 border-start border-4 border-info bg-white h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Active Borrows</div>
+                    <div class="h3 fw-bold mb-0 text-info">@Model.ActiveLoans</div>
+                    <small class="text-muted">Currently out with patrons</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 border-start border-4 border-success bg-white h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Returned</div>
+                    <div class="h3 fw-bold mb-0 text-success">@Model.ReturnedLoans</div>
+                    <small class="text-muted">Completed loan cycles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 border-start border-4 border-danger bg-white h-100">
+                <div class="card-body p-3">
+                    <div class="text-muted small text-uppercase fw-semibold">Overdue Loans</div>
+                    <div class="h3 fw-bold mb-0 text-danger">@Model.OverdueLoans</div>
+                    <small class="text-muted">@Model.UniqueBorrowers unique patrons</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Table -->
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 fw-bold text-dark">
+                <i class="bi bi-table me-2 text-primary"></i>Loan Circulation Records
+            </h5>
+            <span class="badge bg-secondary-subtle text-secondary">@Model.Rows.Count Records</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" style="width: 70px;"># Loan</th>
+                        <th scope="col" style="width: 110px;">Borrowed</th>
+                        <th scope="col" style="width: 110px;">Due Date</th>
+                        <th scope="col" style="width: 110px;">Returned</th>
+                        <th scope="col" style="width: 110px;">Item Code</th>
+                        <th scope="col">Title</th>
+                        <th scope="col" style="width: 90px;">Category</th>
+                        <th scope="col" style="width: 170px;">Branch</th>
+                        <th scope="col">Borrower</th>
+                        <th scope="col" style="width: 100px;" class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Rows.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center py-4 text-muted">
+                                No loan records found matching the specified filters.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var r in Model.Rows)
+                        {
+                            <tr>
+                                <td class="fw-bold text-muted">#@r.LoanId</td>
+                                <td>@r.BorrowDate.ToString("yyyy-MM-dd")</td>
+                                <td>@r.DueDate.ToString("yyyy-MM-dd")</td>
+                                <td>@(r.ReturnDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                                <td><code class="fw-bold">@r.LibraryCode</code></td>
+                                <td class="fw-semibold text-dark">@r.ItemName</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">@r.ItemCategory</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-dark">@r.BranchName</span>
+                                </td>
+                                <td>
+                                    <div>@r.BorrowerName</div>
+                                    <small class="text-muted">@r.BorrowerCardNumber</small>
+                                </td>
+                                <td class="text-center">
+                                    @if (r.Status == "Overdue")
+                                    {
+                                        <span class="badge bg-danger px-2 py-1">Overdue</span>
+                                    }
+                                    else if (r.Status == "Returned")
+                                    {
+                                        <span class="badge bg-success px-2 py-1">Returned</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary px-2 py-1">Active</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-light py-2 text-muted small d-flex justify-content-between">
+            <span>Showing @Model.Rows.Count loan record(s)</span>
+            <span>Branch: @Model.SelectedBranchName</span>
+        </div>
+    </div>
+</div>

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using LibraTrack.Data;
 using LibraTrack.Models;
 using LibraTrack.Models.ViewModels;
+using LibraTrack.Services;
 
 namespace LibraTrack.Controllers
 {
@@ -11,18 +12,41 @@ namespace LibraTrack.Controllers
     public class ItemsController : Controller
     {
         private readonly LibraryDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly IReservationService _reservationService;
 
-        public ItemsController(LibraryDbContext context)
+        public ItemsController(
+            LibraryDbContext context, 
+            IConfiguration configuration,
+            IReservationService reservationService)
         {
             _context = context;
+            _configuration = configuration;
+            _reservationService = reservationService;
+        }
+
+        private async Task<int> GetDefaultBranchIdAsync()
+        {
+            var branchCode = _configuration["CurrentBranchCode"] ?? "CEN";
+            var branch = await _context.Branches.FirstOrDefaultAsync(b => b.BranchCode == branchCode);
+            if (branch != null) return branch.Id;
+            var firstBranch = await _context.Branches.FirstOrDefaultAsync();
+            return firstBranch?.Id ?? 1;
+        }
+
+        private async Task PopulateBranchesViewBagAsync(int? selectedBranchId = null)
+        {
+            var branches = await _context.Branches.Where(b => b.IsActive).OrderBy(b => b.Name).ToListAsync();
+            ViewBag.Branches = branches;
+            ViewBag.SelectedBranchId = selectedBranchId ?? await GetDefaultBranchIdAsync();
         }
 
         // GET: /Items (Admin Dashboard)
         public async Task<IActionResult> Index(string? tab = "books", string? search = null)
         {
-            var booksQuery = _context.Books.AsQueryable();
-            var musicQuery = _context.MusicAlbums.AsQueryable();
-            var toysQuery = _context.Toys.AsQueryable();
+            var booksQuery = _context.Books.Include(b => b.Branch).AsQueryable();
+            var musicQuery = _context.MusicAlbums.Include(m => m.Branch).AsQueryable();
+            var toysQuery = _context.Toys.Include(t => t.Branch).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -36,7 +60,7 @@ namespace LibraTrack.Controllers
             var musicList = await musicQuery.OrderBy(m => m.LibraryCode).ToListAsync();
             var toys = await toysQuery.OrderBy(t => t.LibraryCode).ToListAsync();
 
-            var allItems = await _context.Items.ToListAsync();
+            var allItems = await _context.Items.Include(i => i.Branch).ToListAsync();
 
             var viewModel = new AdminDashboardViewModel
             {
@@ -62,15 +86,21 @@ namespace LibraTrack.Controllers
         // BOOK CRUD
         // ==========================================
         [HttpGet]
-        public IActionResult CreateBook()
+        public async Task<IActionResult> CreateBook()
         {
-            return View(new Book { Status = ItemStatus.Available, ReplacementCost = 25.00m });
+            await PopulateBranchesViewBagAsync();
+            return View(new Book { Status = ItemStatus.Available, ReplacementCost = 25.00m, BranchId = await GetDefaultBranchIdAsync() });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateBook(Book book)
         {
+            if (book.BranchId <= 0)
+            {
+                book.BranchId = await GetDefaultBranchIdAsync();
+            }
+
             if (await _context.Items.AnyAsync(i => i.LibraryCode == book.LibraryCode))
             {
                 ModelState.AddModelError("LibraryCode", $"Library code '{book.LibraryCode}' is already in use by another item.");
@@ -85,6 +115,7 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(Index), new { tab = "books" });
             }
 
+            await PopulateBranchesViewBagAsync(book.BranchId);
             return View(book);
         }
 
@@ -97,6 +128,7 @@ namespace LibraTrack.Controllers
                 TempData["Error"] = "Book not found.";
                 return RedirectToAction(nameof(Index), new { tab = "books" });
             }
+            await PopulateBranchesViewBagAsync(book.BranchId);
             return View(book);
         }
 
@@ -105,6 +137,11 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> EditBook(int id, Book book)
         {
             if (id != book.Id) return NotFound();
+
+            if (book.BranchId <= 0)
+            {
+                book.BranchId = await GetDefaultBranchIdAsync();
+            }
 
             if (await _context.Items.AnyAsync(i => i.LibraryCode == book.LibraryCode && i.Id != id))
             {
@@ -126,6 +163,7 @@ namespace LibraTrack.Controllers
                     throw;
                 }
             }
+            await PopulateBranchesViewBagAsync(book.BranchId);
             return View(book);
         }
 
@@ -133,15 +171,21 @@ namespace LibraTrack.Controllers
         // MUSIC CRUD
         // ==========================================
         [HttpGet]
-        public IActionResult CreateMusic()
+        public async Task<IActionResult> CreateMusic()
         {
-            return View(new Music { Status = ItemStatus.Available, ReleaseYear = DateTime.UtcNow.Year, ReplacementCost = 30.00m });
+            await PopulateBranchesViewBagAsync();
+            return View(new Music { Status = ItemStatus.Available, ReleaseYear = DateTime.UtcNow.Year, ReplacementCost = 30.00m, BranchId = await GetDefaultBranchIdAsync() });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateMusic(Music music)
         {
+            if (music.BranchId <= 0)
+            {
+                music.BranchId = await GetDefaultBranchIdAsync();
+            }
+
             if (await _context.Items.AnyAsync(i => i.LibraryCode == music.LibraryCode))
             {
                 ModelState.AddModelError("LibraryCode", $"Library code '{music.LibraryCode}' is already in use by another item.");
@@ -156,6 +200,7 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(Index), new { tab = "music" });
             }
 
+            await PopulateBranchesViewBagAsync(music.BranchId);
             return View(music);
         }
 
@@ -168,6 +213,7 @@ namespace LibraTrack.Controllers
                 TempData["Error"] = "Music album not found.";
                 return RedirectToAction(nameof(Index), new { tab = "music" });
             }
+            await PopulateBranchesViewBagAsync(music.BranchId);
             return View(music);
         }
 
@@ -176,6 +222,11 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> EditMusic(int id, Music music)
         {
             if (id != music.Id) return NotFound();
+
+            if (music.BranchId <= 0)
+            {
+                music.BranchId = await GetDefaultBranchIdAsync();
+            }
 
             if (await _context.Items.AnyAsync(i => i.LibraryCode == music.LibraryCode && i.Id != id))
             {
@@ -197,6 +248,7 @@ namespace LibraTrack.Controllers
                     throw;
                 }
             }
+            await PopulateBranchesViewBagAsync(music.BranchId);
             return View(music);
         }
 
@@ -204,15 +256,21 @@ namespace LibraTrack.Controllers
         // TOY CRUD
         // ==========================================
         [HttpGet]
-        public IActionResult CreateToy()
+        public async Task<IActionResult> CreateToy()
         {
-            return View(new Toy { Status = ItemStatus.Available, RecommendedAgeMin = 3, ReplacementCost = 40.00m });
+            await PopulateBranchesViewBagAsync();
+            return View(new Toy { Status = ItemStatus.Available, RecommendedAgeMin = 3, ReplacementCost = 40.00m, BranchId = await GetDefaultBranchIdAsync() });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateToy(Toy toy)
         {
+            if (toy.BranchId <= 0)
+            {
+                toy.BranchId = await GetDefaultBranchIdAsync();
+            }
+
             if (await _context.Items.AnyAsync(i => i.LibraryCode == toy.LibraryCode))
             {
                 ModelState.AddModelError("LibraryCode", $"Library code '{toy.LibraryCode}' is already in use by another item.");
@@ -227,6 +285,7 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(Index), new { tab = "toys" });
             }
 
+            await PopulateBranchesViewBagAsync(toy.BranchId);
             return View(toy);
         }
 
@@ -239,6 +298,7 @@ namespace LibraTrack.Controllers
                 TempData["Error"] = "Toy not found.";
                 return RedirectToAction(nameof(Index), new { tab = "toys" });
             }
+            await PopulateBranchesViewBagAsync(toy.BranchId);
             return View(toy);
         }
 
@@ -247,6 +307,11 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> EditToy(int id, Toy toy)
         {
             if (id != toy.Id) return NotFound();
+
+            if (toy.BranchId <= 0)
+            {
+                toy.BranchId = await GetDefaultBranchIdAsync();
+            }
 
             if (await _context.Items.AnyAsync(i => i.LibraryCode == toy.LibraryCode && i.Id != id))
             {
@@ -268,6 +333,7 @@ namespace LibraTrack.Controllers
                     throw;
                 }
             }
+            await PopulateBranchesViewBagAsync(toy.BranchId);
             return View(toy);
         }
 
@@ -278,6 +344,7 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> Details(int id)
         {
             var item = await _context.Items
+                .Include(i => i.Branch)
                 .Include(i => i.Loans.OrderByDescending(l => l.BorrowDate))
                 .ThenInclude(l => l.Borrower)
                 .FirstOrDefaultAsync(i => i.Id == id);
@@ -288,6 +355,16 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            // Requirement 6: Show queue length on the item detail page
+            ViewBag.WaitingQueueCount = await _context.Reservations
+                .CountAsync(r => r.ItemId == id && r.Status == ReservationStatus.Waiting);
+
+            ViewBag.ActiveReadyHold = await _context.Reservations
+                .Include(r => r.Borrower)
+                .FirstOrDefaultAsync(r => r.ItemId == id && 
+                                          r.Status == ReservationStatus.Ready && 
+                                          (r.ExpiresAt == null || r.ExpiresAt > DateTime.UtcNow));
+
             return View(item);
         }
 
@@ -295,6 +372,7 @@ namespace LibraTrack.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var item = await _context.Items
+                .Include(i => i.Branch)
                 .Include(i => i.Loans)
                 .FirstOrDefaultAsync(i => i.Id == id);
 
@@ -367,9 +445,28 @@ namespace LibraTrack.Controllers
                 return RedirectToAction(nameof(Index), new { tab });
             }
 
+            var previousStatus = item.Status;
             item.Status = status;
             await _context.SaveChangesAsync();
-            TempData["Success"] = $"Status for '{item.Name}' updated to {status}.";
+
+            string reservationMsg = "";
+            if (status == ItemStatus.Available && previousStatus != ItemStatus.Available)
+            {
+                try
+                {
+                    var promoted = await _reservationService.PromoteNextWaitingReservationAsync(id);
+                    if (promoted != null)
+                    {
+                        reservationMsg = $" Hold shelf updated: {promoted.Borrower?.FullName} promoted to Ready (Expires {promoted.ExpiresAt:dd MMM yyyy}).";
+                    }
+                }
+                catch
+                {
+                    // Fail gracefully
+                }
+            }
+
+            TempData["Success"] = $"Status for '{item.Name}' updated to {status}.{reservationMsg}";
             return RedirectToAction(nameof(Index), new { tab });
         }
     }
